@@ -5,9 +5,10 @@
 
 #include "GameObject.h"
 
-MeshRenderer::MeshRenderer(std::vector<Mesh*> meshes)
+MeshRenderer::MeshRenderer(std::vector<Mesh*> meshes, Material* mat)
     : meshes(std::move(meshes))
     , pMatrixBuffer(nullptr)
+    , pMaterial(mat)
 {
 }
 
@@ -42,8 +43,13 @@ void MeshRenderer::Start()
 
 void MeshRenderer::Render()
 {
+    if (!pMaterial || meshes.size() == 0) return;
+
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
+
+    // render할 material(shader, color, texture...) 설정
+    pMaterial->Bind();
 
     if (pOwner == nullptr || pImmediateContext == nullptr || pMatrixBuffer == nullptr) {
         return;

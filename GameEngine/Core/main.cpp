@@ -21,7 +21,9 @@
 #include "Resources/Mesh.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
+#include "VelocityController.h"
 #include "Win32Handler.h"
+#include "Resources/Materials/ColorMaterial.h"
 #include "D3D11ResourceHandler.h"
 #include <directxmath.h>
 
@@ -34,169 +36,138 @@
 KeyState localKeyState;
 VideoConfig videoConfig;
 namespace {
-std::vector<Vertex> CreatePlayerMesh(int type)
-{
-    if (type == 0) {
+    std::vector<Vertex> CreatePlayerMesh(int type)
+    {
+        if (type == 0) {
+            return {
+                { 0.0f,   0.18f, 0.5f },
+                { 0.16f, -0.10f, 0.5f },
+                { -0.16f, -0.10f, 0.5f }
+            };
+        }
+
         return {
-            { 0.0f,   0.18f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f },
-            { 0.16f, -0.10f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f },
-            { -0.16f, -0.10f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f }
+            { 0.0f,   0.18f, 0.5f },
+            { 0.16f, -0.10f, 0.5f },
+            { -0.16f, -0.10f, 0.5f }
         };
     }
 
-    return {
-        { 0.0f,   0.18f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f },
-        { 0.16f, -0.10f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f },
-        { -0.16f, -0.10f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f }
-    };
-}
-
-float CreateRandomVelocityComponent(std::mt19937& rng)
-{
-    std::uniform_real_distribution<float> distribution(0.18f, 0.42f);
-    std::uniform_int_distribution<int> signDistribution(0, 1);
-    const float sign = signDistribution(rng) == 0 ? -1.0f : 1.0f;
-    return distribution(rng) * sign;
-}
-
-float CreateRandomPositionComponent(std::mt19937& rng, float minValue, float maxValue)
-{
-    std::uniform_real_distribution<float> distribution(minValue, maxValue);
-    return distribution(rng);
-}
-
-float CalculateDistanceSquared(const Vec3& first, const Vec3& second)
-{
-    const float xDistance = first.x - second.x;
-    const float yDistance = first.y - second.y;
-    const float zDistance = first.z - second.z;
-    return xDistance * xDistance + yDistance * yDistance + zDistance * zDistance;
-}
-
-bool IsFarEnoughFromOccupiedPositions(const Vec3& position, const std::vector<Vec3>& occupiedPositions, float minDistance)
-{
-    const float minDistanceSquared = minDistance * minDistance;
-    for (const Vec3& occupiedPosition : occupiedPositions) {
-        if (CalculateDistanceSquared(position, occupiedPosition) < minDistanceSquared) {
-            return false;
-        }
+    float CreateRandomVelocityComponent(std::mt19937& rng)
+    {
+        std::uniform_real_distribution<float> distribution(0.18f, 0.42f);
+        std::uniform_int_distribution<int> signDistribution(0, 1);
+        const float sign = signDistribution(rng) == 0 ? -1.0f : 1.0f;
+        return distribution(rng) * sign;
     }
 
-    return true;
-}
-
-Vec3 CreateSeparatedRandomPosition(std::mt19937& rng, const std::vector<Vec3>& occupiedPositions)
-{
-    constexpr float minX = -0.75f;
-    constexpr float maxX = 0.75f;
-    constexpr float minY = -0.55f;
-    constexpr float maxY = 0.55f;
-    constexpr float minSpawnDistance = 0.24f;
-
-    for (int attempt = 0; attempt < 256; ++attempt) {
-        Vec3 position;
-        position.x = CreateRandomPositionComponent(rng, minX, maxX);
-        position.y = CreateRandomPositionComponent(rng, minY, maxY);
-        position.z = 0.0f;
-
-        if (IsFarEnoughFromOccupiedPositions(position, occupiedPositions, minSpawnDistance)) {
-            return position;
-        }
+    float CreateRandomPositionComponent(std::mt19937& rng, float minValue, float maxValue)
+    {
+        std::uniform_real_distribution<float> distribution(minValue, maxValue);
+        return distribution(rng);
     }
 
-    for (float y = minY; y <= maxY; y += minSpawnDistance) {
-        for (float x = minX; x <= maxX; x += minSpawnDistance) {
-            Vec3 position = { x, y, 0.0f };
+    float CalculateDistanceSquared(const Vec3& first, const Vec3& second)
+    {
+        const float xDistance = first.x - second.x;
+        const float yDistance = first.y - second.y;
+        const float zDistance = first.z - second.z;
+        return xDistance * xDistance + yDistance * yDistance + zDistance * zDistance;
+    }
+
+    bool IsFarEnoughFromOccupiedPositions(const Vec3& position, const std::vector<Vec3>& occupiedPositions, float minDistance)
+    {
+        const float minDistanceSquared = minDistance * minDistance;
+        for (const Vec3& occupiedPosition : occupiedPositions) {
+            if (CalculateDistanceSquared(position, occupiedPosition) < minDistanceSquared) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    Vec3 CreateSeparatedRandomPosition(std::mt19937& rng, const std::vector<Vec3>& occupiedPositions)
+    {
+        constexpr float minX = -0.75f;
+        constexpr float maxX = 0.75f;
+        constexpr float minY = -0.55f;
+        constexpr float maxY = 0.55f;
+        constexpr float minSpawnDistance = 0.24f;
+
+        for (int attempt = 0; attempt < 256; ++attempt) {
+            Vec3 position;
+            position.x = CreateRandomPositionComponent(rng, minX, maxX);
+            position.y = CreateRandomPositionComponent(rng, minY, maxY);
+            position.z = 0.0f;
+
             if (IsFarEnoughFromOccupiedPositions(position, occupiedPositions, minSpawnDistance)) {
                 return position;
             }
         }
+
+        for (float y = minY; y <= maxY; y += minSpawnDistance) {
+            for (float x = minX; x <= maxX; x += minSpawnDistance) {
+                Vec3 position = { x, y, 0.0f };
+                if (IsFarEnoughFromOccupiedPositions(position, occupiedPositions, minSpawnDistance)) {
+                    return position;
+                }
+            }
+        }
+
+        return { minX, minY, 0.0f };
     }
 
-    return { minX, minY, 0.0f };
+    std::vector<Vertex> CreateBulletMesh()
+    {
+        return {
+            { 0.0f,   0.055f, 0.5f },
+            { 0.05f, -0.035f, 0.5f },
+            { -0.05f, -0.035f, 0.5f }
+        };
+    }
 }
 
-std::vector<Vertex> CreateBulletMesh()
-{
-    return {
-        { 0.0f,   0.055f, 0.5f, 1.0f, 0.25f, 0.25f, 1.0f },
-        { 0.05f, -0.035f, 0.5f, 1.0f, 0.55f, 0.15f, 1.0f },
-        { -0.05f, -0.035f, 0.5f, 0.9f, 0.1f, 0.1f, 1.0f }
-    };
-}
-}
-
-const char* shaderSource = R"(
+std::string shaderSource = R"(
 cbuffer MatrixBuffer : register(b0)
 {
     row_major matrix worldMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
 }
-struct VS_INPUT { float3 pos : POSITION; float4 col : COLOR; };
-struct PS_INPUT { float4 pos : SV_POSITION; float4 col : COLOR; };
+
+cbuffer ColorBuffer : register(b1)
+{
+    float4 tintColor;
+}
+
+struct VS_INPUT { float3 pos : POSITION; };
+struct PS_INPUT { float4 pos : SV_POSITION; };
 
 PS_INPUT VS(VS_INPUT input) {
     PS_INPUT output;
     output.pos = mul(float4(input.pos, 1.0f), worldMatrix);
-    output.col = input.col;
     return output;
 }
 
 float4 PS(PS_INPUT input) : SV_Target {
-    return input.col;
+    return tintColor;
 }
 )";
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
     GraphicsContext* ctx = GraphicsContext::getInstance();
-
+    D3D11_INPUT_ELEMENT_DESC ied[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+    };
     // win32 window setting
     ctx->createWindow(hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
     // device, swapChain, renderTargetView
     ctx->createDeviceAndSwapChainAndRTV(videoConfig.Width, videoConfig.Height);
 
     ID3D11Device* pd3dDevice = ctx->getDevice();
-    ID3D11VertexShader* pVertexShader = nullptr;
-    ID3D11PixelShader* pPixelShader = nullptr;
-    ID3D11InputLayout* pVertexLayout = nullptr;
-
-    ID3DBlob* vsBlob = nullptr;
-    ID3DBlob* psBlob = nullptr;
-    // compile shader
-    compileShader(shaderSource, false, "VS", "vs_4_0", &vsBlob);
-    compileShader(shaderSource, false, "PS", "ps_4_0", &psBlob);
-    pd3dDevice->CreateVertexShader(vsBlob->GetBufferPointer(),
-        vsBlob->GetBufferSize(),
-        nullptr,
-        &pVertexShader
-    );
-    pd3dDevice->CreatePixelShader(psBlob->GetBufferPointer(),
-        psBlob->GetBufferSize(),
-        nullptr,
-        &pPixelShader
-    );
-    // create layout
-    D3D11_INPUT_ELEMENT_DESC layout[] = {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-
-    pd3dDevice->CreateInputLayout(
-        layout,
-        2,
-        vsBlob->GetBufferPointer(),
-        vsBlob->GetBufferSize(),
-        &pVertexLayout
-    );
-    ctx->setVertexShader(pVertexShader);
-    ctx->setPixelShader(pPixelShader);
-    ctx->setInputLayout(pVertexLayout);
-
-    // bloc release
-    vsBlob->Release();
-    psBlob->Release();
 
     //========================================================================//
     //========================================================================//
@@ -206,10 +177,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
         Mesh bulletMesh(CreateBulletMesh());
         playerMesh.createVertexBuffer();
         bulletMesh.createVertexBuffer();
+        ShaderSet starShaders = ctx->CompileAndCreate(shaderSource.c_str(), shaderSource.length(), false, ied, 1);
+
+        // 2. 머티리얼 딱 두 종류만 만들기 (붕어빵 틀)
+        ColorMaterial* goldMat = new ColorMaterial(starShaders, { 1, 0.8f, 0, 1 });
 
         GameLoop loop;
-        loop.collisionDetector.SetCollisionDistance(0.18f);
-        loop.collisionDetector.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
+        loop.collisionSystem.SetCollisionDistance(0.18f);
+        loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
         std::random_device randomDevice;
         std::mt19937 rng(randomDevice());
         //========================================================================//
@@ -218,7 +193,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
         GameObject* player = new GameObject("Player");
         player->AddComponent(new PlayerControl(0));
-        player->AddComponent(new MeshRenderer({ &playerMesh }));
+        player->AddComponent(new VelocityController());
+        player->AddComponent(new MeshRenderer({ &playerMesh }, goldMat));
         loop.AddGameObject(player);
 
         std::vector<Vec3> occupiedPositions;
@@ -231,7 +207,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
             bullet->velocity.x = CreateRandomVelocityComponent(rng);
             bullet->velocity.y = CreateRandomVelocityComponent(rng);
             bullet->velocity.z = 0.0f;
-            bullet->AddComponent(new MeshRenderer({ &bulletMesh }));
+            bullet->AddComponent(new VelocityController());
+            bullet->AddComponent(new MeshRenderer({ &bulletMesh }, goldMat));
             loop.AddGameObject(bullet);
         }
 

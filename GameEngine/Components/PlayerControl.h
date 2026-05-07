@@ -21,6 +21,6 @@ public:
     // Input reads the cached key state.
     void Input() override;
 
-    // Update applies movement with delta time.
+    // Update writes the desired velocity from input.
     void Update(float dt) override;
 };

@@ -5,7 +5,6 @@
 Mesh::Mesh(std::vector<Vertex> vertices) {
 	mesh = std::move(vertices);
 	pVertexBuffer = nullptr;
-	color = { 0.5f, 0.5f, 0.5f, 1.f };
 }
 
 Mesh::~Mesh() {

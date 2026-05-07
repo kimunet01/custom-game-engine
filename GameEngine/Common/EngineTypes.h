@@ -4,11 +4,8 @@
 #include <d3d11.h>
 #include <directxmath.h>
 
-// 정점 하나가 가지는 정보.
-// 위치(x, y, z)와 색상(r, g, b, a)을 한 묶음으로 보관한다.
 struct Vertex {
     float x, y, z;
-    float r, g, b, a;
 };
 
 // GameObject의 월드 좌표를 표현하기 위한 단순 위치 구조체.

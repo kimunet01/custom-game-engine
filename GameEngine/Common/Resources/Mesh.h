@@ -8,7 +8,6 @@
 class Mesh {
 public:
 	std::vector<Vertex> mesh;
-	DirectX::XMFLOAT4 color;
 	ID3D11Buffer* pVertexBuffer;
 
 	void createVertexBuffer();

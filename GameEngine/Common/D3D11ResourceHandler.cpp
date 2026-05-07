@@ -1,4 +1,4 @@
-#include "D3D11ResourceHandler.h"
+﻿#include "D3D11ResourceHandler.h"
 #include "Win32Handler.h"
 
 #include <cstring>
@@ -13,9 +13,6 @@ GraphicsContext::GraphicsContext()
     , pImmediateContext(nullptr)
     , pSwapChain(nullptr)
     , pRenderTargetView(nullptr)
-    , pVertexShader(nullptr)
-    , pPixelShader(nullptr)
-    , pVertexLayout(nullptr)
 {
 }
 
@@ -58,36 +55,6 @@ IDXGISwapChain* GraphicsContext::getSwapChain()
 ID3D11RenderTargetView* GraphicsContext::getRTV()
 {
     return pRenderTargetView;
-}
-
-ID3D11VertexShader* GraphicsContext::getVertexShader()
-{
-    return pVertexShader;
-}
-
-ID3D11PixelShader* GraphicsContext::getPixelShader()
-{
-    return pPixelShader;
-}
-
-ID3D11InputLayout* GraphicsContext::getInputLayout()
-{
-    return pVertexLayout;
-}
-
-void GraphicsContext::setVertexShader(ID3D11VertexShader* vertexShader)
-{
-    pVertexShader = vertexShader;
-}
-
-void GraphicsContext::setPixelShader(ID3D11PixelShader* pixelShader)
-{
-    pPixelShader = pixelShader;
-}
-
-void GraphicsContext::setInputLayout(ID3D11InputLayout* inputLayout)
-{
-    pVertexLayout = inputLayout;
 }
 
 void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
@@ -204,11 +171,94 @@ void GraphicsContext::RebuildVideoResource()
     printf("Video Resized\n");
 }
 
+ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t length, bool isFile, D3D11_INPUT_ELEMENT_DESC* ied, UINT iedCount)
+{
+    ShaderSet res;
+    ID3DBlob* vsBlob = nullptr;
+    ID3DBlob* psBlob = nullptr;
+    ID3DBlob* errBlob = nullptr;
+
+    HRESULT hr = S_OK;
+    if (isFile) {
+        hr = D3DCompileFromFile(static_cast<LPCWSTR>(source), nullptr, nullptr, "VS", "vs_5_0", 0, 0, &vsBlob, &errBlob);
+    }
+    else {
+        hr = D3DCompile(source, length, nullptr, nullptr, nullptr, "VS", "vs_5_0", 0, 0, &vsBlob, &errBlob);
+    }
+
+    if (FAILED(hr)) {
+        if (errBlob) {
+            OutputDebugStringA(static_cast<char*>(errBlob->GetBufferPointer()));
+            errBlob->Release();
+        }
+        return res;
+    }
+
+    if (errBlob) {
+        errBlob->Release();
+        errBlob = nullptr;
+    }
+
+    if (isFile) {
+        hr = D3DCompileFromFile(static_cast<LPCWSTR>(source), nullptr, nullptr, "PS", "ps_5_0", 0, 0, &psBlob, &errBlob);
+    }
+    else {
+        hr = D3DCompile(source, length, nullptr, nullptr, nullptr, "PS", "ps_5_0", 0, 0, &psBlob, &errBlob);
+    }
+
+    if (FAILED(hr)) {
+        if (errBlob) {
+            OutputDebugStringA(static_cast<char*>(errBlob->GetBufferPointer()));
+            errBlob->Release();
+        }
+        if (vsBlob) vsBlob->Release();
+        return res;
+    }
+
+    if (!pd3dDevice) {
+        if (vsBlob) vsBlob->Release();
+        if (psBlob) psBlob->Release();
+        if (errBlob) errBlob->Release();
+        return res;
+    }
+
+    hr = pd3dDevice->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &res.vs);
+    if (FAILED(hr)) {
+        if (vsBlob) vsBlob->Release();
+        if (psBlob) psBlob->Release();
+        if (errBlob) errBlob->Release();
+        return res;
+    }
+
+    hr = pd3dDevice->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &res.ps);
+    if (FAILED(hr)) {
+        res = ShaderSet();
+        if (vsBlob) vsBlob->Release();
+        if (psBlob) psBlob->Release();
+        if (errBlob) errBlob->Release();
+        return res;
+    }
+
+    if (ied) {
+        hr = pd3dDevice->CreateInputLayout(ied, iedCount, vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &res.layout);
+        if (FAILED(hr)) {
+            res = ShaderSet();
+            if (vsBlob) vsBlob->Release();
+            if (psBlob) psBlob->Release();
+            if (errBlob) errBlob->Release();
+            return res;
+        }
+    }
+
+    if (vsBlob) vsBlob->Release();
+    if (psBlob) psBlob->Release();
+    if (errBlob) errBlob->Release();
+
+    return res;
+}
+
 void GraphicsContext::CleanUp()
 {
-    if (pVertexLayout) pVertexLayout->Release();
-    if (pVertexShader) pVertexShader->Release();
-    if (pPixelShader) pPixelShader->Release();
     if (pRenderTargetView) pRenderTargetView->Release();
     if (pSwapChain) pSwapChain->Release();
     if (pImmediateContext) pImmediateContext->Release();

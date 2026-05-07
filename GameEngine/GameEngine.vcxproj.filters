@@ -16,6 +16,9 @@
     <Filter Include="Common\Resources">
       <UniqueIdentifier>{53507976-acf4-45ff-9b2d-af2fdef3b210}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Resources\Materials">
+      <UniqueIdentifier>{230bb667-b3d4-4135-a0ef-1075b9c0e470}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\main.cpp">
@@ -24,7 +27,7 @@
     <ClCompile Include="FrameWork\Component.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="FrameWork\CollisionDetector.cpp">
+    <ClCompile Include="FrameWork\CollisionSystem.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="FrameWork\GameObject.cpp">
@@ -45,8 +48,20 @@
     <ClCompile Include="Components\PlayerControl.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\VelocityController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Common\Resources\Mesh.cpp">
       <Filter>Common\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Resources\ShaderSet.cpp">
+      <Filter>Common\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Resources\Material.cpp">
+      <Filter>Common\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp">
+      <Filter>Common\Resources\Materials</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -56,10 +71,13 @@
     <ClInclude Include="Common\EngineTypes.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Utils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
     <ClInclude Include="FrameWork\Component.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
-    <ClInclude Include="FrameWork\CollisionDetector.h">
+    <ClInclude Include="FrameWork\CollisionSystem.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameObject.h">
@@ -77,11 +95,20 @@
     <ClInclude Include="Components\PlayerControl.h">
       <Filter>Components</Filter>
     </ClInclude>
+    <ClInclude Include="Components\VelocityController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
     <ClInclude Include="Common\Resources\Mesh.h">
       <Filter>Common\Resources</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="todo.txt" />
+    <ClInclude Include="Common\Resources\ShaderSet.h">
+      <Filter>Common\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Resources\Material.h">
+      <Filter>Common\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Resources\Materials\ColorMaterial.h">
+      <Filter>Common\Resources\Materials</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

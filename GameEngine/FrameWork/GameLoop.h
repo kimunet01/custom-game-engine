@@ -3,7 +3,7 @@
 #include <chrono>
 #include <vector>
 
-#include "CollisionDetector.h"
+#include "CollisionSystem.h"
 #include "D3D11ResourceHandler.h"
 #include "EngineTypes.h"
 #include "GameObject.h"
@@ -15,7 +15,7 @@ class GameLoop
 public:
     bool isRunning = true;
     std::vector<GameObject*> gameWorld;
-    CollisionDetector collisionDetector;
+    CollisionSystem collisionSystem;
     std::chrono::high_resolution_clock::time_point prevTime;
     float deltaTime = 0.0f;
 
