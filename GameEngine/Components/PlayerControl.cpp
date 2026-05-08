@@ -1,5 +1,13 @@
 ﻿#include "PlayerControl.h"
 
+/*
+ * PlayerControl.cpp
+ * PlayerControl의 입력 해석과 속도 갱신 로직을 구현한다.
+ *
+ * playerType이 0이면 방향키/N, 그 외에는 WASD/M 조합을 사용한다. 이 방식은
+ * 같은 컴포넌트를 다른 조작 키셋으로 재사용하기 위한 간단한 분기다.
+ */
+
 PlayerControl::PlayerControl(int type)
     : playerType(type) {
 }
@@ -7,6 +15,7 @@ PlayerControl::PlayerControl(int type)
 void PlayerControl::Input()
 {
     if (playerType == 0) {
+        // 1번 플레이어 입력: 방향키 이동, N 키 회전.
         moveUp = localKeyState.up;
         moveDown = localKeyState.down;
         moveLeft = localKeyState.left;
@@ -14,6 +23,7 @@ void PlayerControl::Input()
         rotate = localKeyState.n;
     }
     else {
+        // 2번 플레이어 입력: WASD 이동, M 키 회전.
         moveUp = localKeyState.w;
         moveDown = localKeyState.s;
         moveLeft = localKeyState.a;
@@ -24,11 +34,13 @@ void PlayerControl::Input()
 
 void PlayerControl::Start()
 {
+    // 현재 별도 초기화 리소스는 없지만, GameLoop가 중복 Start를 호출하지 않도록 상태를 표시한다.
     isStarted = true;
 }
 
 void PlayerControl::Update(float dt)
 {
+    // 입력이 없는 프레임에는 멈추도록 매 프레임 velocity를 먼저 초기화한다.
     pOwner->velocity.x = 0.0f;
     pOwner->velocity.y = 0.0f;
 
@@ -45,6 +57,7 @@ void PlayerControl::Update(float dt)
         pOwner->velocity.x += speed;
     }
     if (rotate) {
+        // 회전은 위치 이동과 달리 이 컴포넌트가 직접 누적한다.
         pOwner->rotation += speed * dt;
     }
 }

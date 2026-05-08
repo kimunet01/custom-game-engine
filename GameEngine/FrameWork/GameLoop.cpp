@@ -1,12 +1,21 @@
 ﻿#include "GameLoop.h"
 #include <thread>
 
+/*
+ * GameLoop.cpp
+ * 게임 루프의 실제 실행 순서를 구현한다.
+ *
+ * 한 프레임은 Input, Update, Render 단계로 구성된다. GameLoop는 구체적인 게임 행동을
+ * 직접 수행하기보다 각 GameObject에 부착된 Component의 생명주기 함수를 호출한다.
+ */
+
 GameLoop::GameLoop()
 {
     Initialize();
 }
 
-// GameLoop owns the objects registered in the world.
+// GameLoop는 gameWorld에 등록된 GameObject의 소유권을 가진다.
+// 따라서 루프가 파괴될 때 등록된 오브젝트들을 모두 delete한다.
 GameLoop::~GameLoop()
 {
     for (GameObject* object : gameWorld) {
@@ -14,7 +23,7 @@ GameLoop::~GameLoop()
     }
 }
 
-// Initialize base loop state.
+// 루프 실행 상태와 시간 기준점을 초기화한다.
 void GameLoop::Initialize()
 {
     isRunning = true;
@@ -22,15 +31,16 @@ void GameLoop::Initialize()
     deltaTime = 0.0f;
 }
 
-// Register an object in the world.
+// 오브젝트를 월드에 등록한다.
+// 현재 raw pointer를 받으므로 중복 등록이나 외부 delete는 호출자가 조심해야 한다.
 void GameLoop::AddGameObject(GameObject* object)
 {
     gameWorld.push_back(object);
 }
 
-// Input phase:
-// 1. Drain the Win32 message queue.
-// 2. Let components read the cached input state updated by WndProc.
+// Input 단계:
+// 1. Win32 메시지 큐를 비운다.
+// 2. WndProc가 갱신한 입력 캐시를 각 컴포넌트가 읽을 수 있게 Input을 호출한다.
 void GameLoop::Input()
 {
     MSG msg = {};
@@ -52,7 +62,7 @@ void GameLoop::Input()
 
 void GameLoop::Update()
 {
-    // 컴포넌트 Start
+    // 아직 시작하지 않은 컴포넌트는 Update 전에 Start를 1회 호출한다.
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             if (!component->isStarted) {
@@ -61,19 +71,20 @@ void GameLoop::Update()
         }
     }
 
-    // 컴포넌트 Update
+    // 모든 컴포넌트가 자신의 게임 로직을 갱신한다.
+    // 예: PlayerControl은 velocity를 설정하고, VelocityController는 position을 이동시킨다.
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             component->Update(deltaTime);
         }
     }
 
-    // 충돌 검사
+    // 컴포넌트 갱신 후의 위치를 기준으로 충돌 검사와 반응을 처리한다.
     collisionSystem.Update(gameWorld);
 }
 
-// Render phase:
-// Clear the back buffer, set shared pipeline state, then render each object.
+// Render 단계:
+// back buffer를 지우고 공통 파이프라인 상태를 설정한 뒤 각 컴포넌트의 Render를 호출한다.
 void GameLoop::Render()
 {
     GraphicsContext* ctx = GraphicsContext::getInstance();
@@ -81,6 +92,7 @@ void GameLoop::Render()
     ID3D11RenderTargetView* pRenderTargetView = ctx->getRTV();
     IDXGISwapChain* pSwapChain = ctx->getSwapChain();
 
+    // 매 프레임 이전 그림을 지우고 새 프레임을 그리기 위한 clear 색상.
     float clearColor[] = { 0.1f, 0.2f, 0.3f, 1.0f };
     pImmediateContext->ClearRenderTargetView(pRenderTargetView, clearColor);
 
@@ -89,7 +101,8 @@ void GameLoop::Render()
     //RECT clientRect = {};
     //GetClientRect(hWnd, &clientRect);
 
-    // Reset the viewport to the configured window size.
+    // 현재 videoConfig 기준으로 viewport를 재설정한다.
+    // 해상도 변경 후에도 렌더링 영역이 back buffer 크기와 맞도록 하기 위함이다.
     D3D11_VIEWPORT viewport = {};
     viewport.TopLeftX = 0.0f;
     viewport.TopLeftY = 0.0f;
@@ -100,7 +113,8 @@ void GameLoop::Render()
     pImmediateContext->RSSetViewports(1, &viewport);
     pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // Let each object render its own components.
+    // 각 GameObject의 컴포넌트가 필요한 경우 스스로 렌더링한다.
+    // GameLoop는 MeshRenderer 같은 구체 타입을 알 필요가 없다.
     for (GameObject* object : gameWorld) {
         for (auto component : object->components) {
             component->Render();
@@ -110,8 +124,8 @@ void GameLoop::Render()
     pSwapChain->Present(1, 0);
 }
 
-// Main loop.
-// Each frame runs Input -> Update -> Render after calculating deltaTime.
+// 메인 루프.
+// 매 프레임 deltaTime을 계산한 뒤 Input -> Update -> Render 순서로 실행한다.
 void GameLoop::Run()
 {
     while (isRunning) {
