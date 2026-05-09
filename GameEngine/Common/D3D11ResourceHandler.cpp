@@ -5,6 +5,15 @@
 #include <d3dcompiler.h>
 #include <stdio.h>
 
+/*
+ * D3D11ResourceHandler.cpp
+ * GraphicsContext의 실제 구현 파일이다.
+ *
+ * 창 생성 이후 DirectX device/swap chain/render target view를 만들고, 셰이더 컴파일과
+ * input layout 생성을 담당한다. Mesh, Material, Renderer 계층은 이 컨텍스트를 통해
+ * GPU 리소스와 device context에 접근한다.
+ */
+
 GraphicsContext* GraphicsContext::pInstance = nullptr;
 
 GraphicsContext::GraphicsContext()
@@ -59,6 +68,8 @@ ID3D11RenderTargetView* GraphicsContext::getRTV()
 
 void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
 {
+    // swap chain은 렌더링 결과를 담는 back buffer와 화면 표시를 연결한다.
+    // 여기서는 단일 back buffer, 32비트 RGBA 포맷, windowed 모드로 시작한다.
     DXGI_SWAP_CHAIN_DESC sd = {};
     sd.BufferCount = 1;
     sd.BufferDesc.Width = width;
@@ -69,6 +80,7 @@ void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
     sd.SampleDesc.Count = 1;
     sd.Windowed = TRUE;
 
+    // device는 GPU 리소스 생성용, immediate context는 렌더링 명령 제출용이다.
     const HRESULT deviceResult = D3D11CreateDeviceAndSwapChain(
         nullptr,
         D3D_DRIVER_TYPE_HARDWARE,
@@ -87,6 +99,8 @@ void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
         return;
     }
 
+    // swap chain의 back buffer 텍스처를 render target view로 감싸야
+    // OM 단계에서 출력 대상으로 사용할 수 있다.
     ID3D11Texture2D* pBackBuffer = nullptr;
     const HRESULT backBufferResult = pSwapChain->GetBuffer(
         0,
@@ -107,6 +121,7 @@ void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
 
 void GraphicsContext::createWindow(HINSTANCE hInstance, int nCmdShow, const wchar_t* winClassName, int width, int height)
 {
+    // Win32 창 클래스를 등록한다. WndProc가 OS 메시지의 진입점이 된다.
     WNDCLASSEXW wcex = { sizeof(WNDCLASSEXW) };
     wcex.lpfnWndProc = WndProc;
     wcex.hInstance = hInstance;
@@ -114,6 +129,7 @@ void GraphicsContext::createWindow(HINSTANCE hInstance, int nCmdShow, const wcha
     wcex.lpszClassName = winClassName;
     RegisterClassExW(&wcex);
 
+    // 클라이언트 영역이 요청한 width/height가 되도록 창 테두리 크기를 보정한다.
     RECT rc = { 0, 0, width, height };
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
@@ -141,23 +157,23 @@ void GraphicsContext::RebuildVideoResource()
 {
     if (!pSwapChain) return;
 
-    // rtv release
+    // 기존 RTV는 이전 back buffer를 참조하므로 ResizeBuffers 전에 반드시 해제한다.
     if (pRenderTargetView) {
         pRenderTargetView->Release();
         pRenderTargetView = nullptr;
     }
 
-    // resize backBuffer
+    // videoConfig에 저장된 새 해상도로 back buffer 크기를 바꾼다.
     pSwapChain->ResizeBuffers(0, videoConfig.Width, videoConfig.Height, DXGI_FORMAT_UNKNOWN, 0);
 
-    // get backBuffer
+    // 새 back buffer를 다시 가져와 render target view와 연결한다.
     ID3D11Texture2D* pBackBuffer = nullptr;
     pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
     if (pBackBuffer == nullptr) {
         printf("GetBuffer Error\n");
         return;
     }
-    // rtv re-connect
+    // RTV를 재생성해야 이후 Render 단계에서 새 back buffer에 그릴 수 있다.
     pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &pRenderTargetView);
     if (pBackBuffer) pBackBuffer->Release();
 
@@ -173,12 +189,15 @@ void GraphicsContext::RebuildVideoResource()
 
 ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t length, bool isFile, D3D11_INPUT_ELEMENT_DESC* ied, UINT iedCount)
 {
+    // 결과 ShaderSet은 vertex shader, pixel shader, input layout을 한 묶음으로 반환한다.
+    // 실패하면 비어 있는 ShaderSet을 반환해 호출자가 null 리소스를 확인할 수 있게 한다.
     ShaderSet res;
     ID3DBlob* vsBlob = nullptr;
     ID3DBlob* psBlob = nullptr;
     ID3DBlob* errBlob = nullptr;
 
     HRESULT hr = S_OK;
+    // VS 엔트리 포인트를 먼저 컴파일한다. 문자열 소스와 파일 소스를 모두 지원한다.
     if (isFile) {
         hr = D3DCompileFromFile(static_cast<LPCWSTR>(source), nullptr, nullptr, "VS", "vs_5_0", 0, 0, &vsBlob, &errBlob);
     }
@@ -199,6 +218,7 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
         errBlob = nullptr;
     }
 
+    // PS 엔트리 포인트를 컴파일한다. VS와 같은 소스를 사용하되 엔트리 이름만 다르다.
     if (isFile) {
         hr = D3DCompileFromFile(static_cast<LPCWSTR>(source), nullptr, nullptr, "PS", "ps_5_0", 0, 0, &psBlob, &errBlob);
     }
@@ -222,6 +242,7 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
         return res;
     }
 
+    // 컴파일된 bytecode blob을 실제 D3D11 shader 객체로 변환한다.
     hr = pd3dDevice->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &res.vs);
     if (FAILED(hr)) {
         if (vsBlob) vsBlob->Release();
@@ -240,6 +261,7 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
     }
 
     if (ied) {
+        // input layout은 CPU 정점 구조체와 HLSL VS_INPUT의 의미론을 연결한다.
         hr = pd3dDevice->CreateInputLayout(ied, iedCount, vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &res.layout);
         if (FAILED(hr)) {
             res = ShaderSet();
@@ -259,6 +281,8 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
 
 void GraphicsContext::CleanUp()
 {
+    // GraphicsContext가 직접 만든 COM 객체를 역순에 가깝게 해제한다.
+    // 각 포인터는 raw COM pointer이므로 Release 호출을 빠뜨리면 GPU 리소스 누수가 생긴다.
     if (pRenderTargetView) pRenderTargetView->Release();
     if (pSwapChain) pSwapChain->Release();
     if (pImmediateContext) pImmediateContext->Release();
@@ -272,6 +296,8 @@ GraphicsContext::~GraphicsContext()
 
 HRESULT compileShader(const void* pSrc, bool isFile, LPCSTR szEntry, LPCSTR szTarget, ID3DBlob** ppBlob)
 {
+    // 개별 셰이더만 컴파일할 때 쓰는 helper.
+    // CompileAndCreate와 달리 셰이더 객체나 input layout 생성은 하지 않는다.
     ID3DBlob* pErrorBlob = nullptr;
     HRESULT hr = NULL;
 
