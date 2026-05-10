@@ -46,3 +46,31 @@ void Mesh::createVertexBuffer() {
 		return;
 	}
 }
+
+void Mesh::UpdateVertexBuffer()
+{
+    GraphicsContext* ctx = GraphicsContext::getInstance();
+    ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
+    if (pImmediateContext == nullptr || pVertexBuffer == nullptr || mesh.empty()) {
+        return;
+    }
+
+    pImmediateContext->UpdateSubresource(pVertexBuffer, 0, nullptr, mesh.data(), 0, 0);
+}
+
+void Mesh::SetUVRect(float u0, float v0, float u1, float v1)
+{
+    if (mesh.size() < 6) {
+        return;
+    }
+
+    mesh[0].u = u0; mesh[0].v = v0;
+    mesh[1].u = u1; mesh[1].v = v0;
+    mesh[2].u = u1; mesh[2].v = v1;
+
+    mesh[3].u = u0; mesh[3].v = v0;
+    mesh[4].u = u1; mesh[4].v = v1;
+    mesh[5].u = u0; mesh[5].v = v1;
+
+    UpdateVertexBuffer();
+}

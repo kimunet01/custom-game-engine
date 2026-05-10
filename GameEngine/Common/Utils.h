@@ -20,3 +20,12 @@ inline float ClampFloat(float value, float minValue, float maxValue)
     }
     return value;
 }
+
+template <typename T>
+void SafeRelease(T*& resource)
+{
+    if (resource != nullptr) {
+        resource->Release();
+        resource = nullptr;
+    }
+}

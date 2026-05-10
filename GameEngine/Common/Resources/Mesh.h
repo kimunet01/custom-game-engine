@@ -23,6 +23,8 @@ public:
 
     // mesh 벡터의 정점 데이터를 GPU vertex buffer로 업로드한다.
 	void createVertexBuffer();
+    void UpdateVertexBuffer();
+    void SetUVRect(float u0, float v0, float u1, float v1);
     // 외부에서 만든 정점 배열을 받아 Mesh의 CPU 데이터로 소유한다.
 	explicit Mesh(std::vector<Vertex> vertices);
     // 생성한 vertex buffer를 Release한다.

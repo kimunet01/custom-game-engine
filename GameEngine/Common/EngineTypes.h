@@ -13,10 +13,9 @@
 #include <d3d11.h>
 #include <directxmath.h>
 
-// 현재 렌더링 파이프라인에 전달되는 정점 데이터.
-// 지금 단계에서는 위치만 사용하므로 셰이더 input layout도 POSITION 하나만 가진다.
 struct Vertex {
     float x, y, z;
+    float u, v;
 };
 
 // GameObject의 월드 좌표를 표현하기 위한 단순 위치 구조체.
@@ -55,8 +54,8 @@ struct MatrixBufferType {
 // 창 크기, 전체화면 여부, 리사이즈 요청 등 비디오 출력 설정을 보관한다.
 struct VideoConfig{
     // Win32 창과 DirectX swap chain/back buffer가 공유하는 화면 크기.
-    int Width = 800;
-    int Height = 600;
+    int Width = 1600;
+    int Height = 900;
     // WndProc에서 F 키 입력이나 해상도 변경 입력을 받을 때 갱신된다.
     bool IsFullscreen = false;
     bool NeedsResize = false;

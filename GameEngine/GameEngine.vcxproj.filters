@@ -19,6 +19,12 @@
     <Filter Include="Common\Resources\Materials">
       <UniqueIdentifier>{230bb667-b3d4-4135-a0ef-1075b9c0e470}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Resources\Shaders">
+      <UniqueIdentifier>{b6da996b-87b6-4a4f-a764-e28dbce6c65f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets">
+      <UniqueIdentifier>{eeb1f356-c328-4f20-9896-a65edcb7a1ca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\main.cpp">
@@ -48,6 +54,9 @@
     <ClCompile Include="Components\PlayerControl.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\SpriteAnimator.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Components\VelocityController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
@@ -61,6 +70,9 @@
       <Filter>Common\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp">
+      <Filter>Common\Resources\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp">
       <Filter>Common\Resources\Materials</Filter>
     </ClCompile>
   </ItemGroup>
@@ -95,6 +107,9 @@
     <ClInclude Include="Components\PlayerControl.h">
       <Filter>Components</Filter>
     </ClInclude>
+    <ClInclude Include="Components\SpriteAnimator.h">
+      <Filter>Components</Filter>
+    </ClInclude>
     <ClInclude Include="Components\VelocityController.h">
       <Filter>Components</Filter>
     </ClInclude>
@@ -110,5 +125,22 @@
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h">
       <Filter>Common\Resources\Materials</Filter>
     </ClInclude>
+    <ClInclude Include="Common\Resources\Materials\TextureMaterial.h">
+      <Filter>Common\Resources\Materials</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\chmov.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="assets\gold.bmp">
+      <Filter>assets</Filter>
+    </Image>
+    <None Include="Common\Resources\Shaders\ColorShader.hlsl">
+      <Filter>Common\Resources\Shaders</Filter>
+    </None>
+    <None Include="Common\Resources\Shaders\TextureShader.hlsl">
+      <Filter>Common\Resources\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
