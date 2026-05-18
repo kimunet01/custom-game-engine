@@ -1,5 +1,7 @@
 #include "SpriteAnimator.h"
 
+#include "MovementState.h"
+#include "GameObject.h"
 #include "Logger.h"
 
 SpriteAnimator::SpriteAnimator(Mesh* mesh)
@@ -10,8 +12,8 @@ SpriteAnimator::SpriteAnimator(Mesh* mesh)
 
 void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int startFrame, int frameCount, float frameDuration, bool loop)
 {
-    if (columns <= 0 || rows <= 0 || frameCount <= 0) {
-        Logger::Warning("SpriteAnimator ignored invalid clip. name=%s columns=%d rows=%d frameCount=%d", name.c_str(), columns, rows, frameCount);
+    if (columns <= 0 || rows <= 0 || frameCount <= 0 || frameDuration <= 0.0f) {
+        Logger::Warning("SpriteAnimator ignored invalid clip. name=%s columns=%d rows=%d frameCount=%d frameDuration=%.3f", name.c_str(), columns, rows, frameCount, frameDuration);
         return;
     }
 
@@ -46,27 +48,25 @@ void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int
     }
 }
 
-void SpriteAnimator::Play(const std::string& name)
+void SpriteAnimator::Start()
 {
-    auto it = clips.find(name);
-    if (it == clips.end()) {
-        Logger::Warning("SpriteAnimator cannot play missing clip. name=%s", name.c_str());
-        return;
+    if (pOwner != nullptr) {
+        movementState = pOwner->GetComponent<MovementState>();
     }
 
-    if (currentClip == &it->second) {
-        return;
+    if (movementState == nullptr) {
+        Logger::Warning("SpriteAnimator started without MovementState. owner=%s", pOwner ? pOwner->name.c_str() : "null");
     }
 
-    currentClip = &it->second;
-    currentFrameIndex = 0;
-    elapsedTime = 0.0f;
-    ApplyCurrentFrame();
-    Logger::Info("SpriteAnimator playing clip. name=%s", name.c_str());
+    SelectClipForState();
+    isStarted = true;
+    Logger::Info("SpriteAnimator started. owner=%s clipCount=%zu", pOwner ? pOwner->name.c_str() : "null", clips.size());
 }
 
 void SpriteAnimator::Update(float dt)
 {
+    SelectClipForState();
+
     if (currentClip == nullptr || currentClip->frames.empty()) {
         return;
     }
@@ -84,6 +84,33 @@ void SpriteAnimator::Update(float dt)
     }
 
     ApplyCurrentFrame();
+}
+
+void SpriteAnimator::SelectClipForState()
+{
+    if (movementState == nullptr) {
+        return;
+    }
+
+    const std::string nextClipName = movementState->GetStateName();
+    if (currentClipName == nextClipName) {
+        return;
+    }
+
+    auto it = clips.find(nextClipName);
+    if (it == clips.end()) {
+        Logger::Warning("SpriteAnimator missing clip for animation state. state=%s", nextClipName.c_str());
+        currentClip = nullptr;
+        currentClipName = nextClipName;
+        return;
+    }
+
+    currentClip = &it->second;
+    currentClipName = nextClipName;
+    currentFrameIndex = 0;
+    elapsedTime = 0.0f;
+    ApplyCurrentFrame();
+    Logger::Info("SpriteAnimator selected clip. name=%s", currentClipName.c_str());
 }
 
 void SpriteAnimator::ApplyCurrentFrame()

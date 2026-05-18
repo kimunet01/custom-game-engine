@@ -60,6 +60,9 @@
     <ClCompile Include="Components\VelocityController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\MovementState.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Common\Resources\Mesh.cpp">
       <Filter>Common\Resources</Filter>
     </ClCompile>
@@ -114,6 +117,9 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\VelocityController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\MovementState.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Common\Resources\Mesh.h">

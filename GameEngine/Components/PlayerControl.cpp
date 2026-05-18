@@ -1,5 +1,6 @@
 ﻿#include "PlayerControl.h"
 
+#include "MovementState.h"
 #include "GameObject.h"
 #include "Logger.h"
 
@@ -38,6 +39,13 @@ void PlayerControl::Input()
 
 void PlayerControl::Start()
 {
+    if (pOwner != nullptr) {
+        movementState = pOwner->GetComponent<MovementState>();
+        if (movementState == nullptr) {
+            Logger::Warning("PlayerControl started without MovementState. owner=%s", pOwner->name.c_str());
+        }
+    }
+
     // 현재 별도 초기화 리소스는 없지만, GameLoop가 중복 Start를 호출하지 않도록 상태를 표시한다.
     isStarted = true;
     Logger::Info("PlayerControl started. owner=%s playerType=%d", pOwner ? pOwner->name.c_str() : "null", playerType);
@@ -69,6 +77,10 @@ void PlayerControl::Update(float dt)
     if (rotate) {
         // 회전은 위치 이동과 달리 이 컴포넌트가 직접 누적한다.
         pOwner->rotation += speed * dt;
+    }
+
+    if (movementState != nullptr) {
+        movementState->SetFromDirectionInput(moveUp, moveDown, moveLeft, moveRight);
     }
 }
 

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * main.cpp
  * Entry point and sample scene assembly.
  */
@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "D3D11ResourceHandler.h"
+#include "MovementState.h"
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
@@ -61,7 +62,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     ctx->createWindow(hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
     ctx->createDeviceAndSwapChainAndRTV(videoConfig.Width, videoConfig.Height);
 
-    Mesh playerMesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.0f, 0.125f, 0.111111f));
+    Mesh playerMesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
     playerMesh.createVertexBuffer();
 
     const wchar_t* textureShaderPath = L"Common\\Resources\\Shaders\\TextureShader.hlsl";
@@ -72,11 +73,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
 
     GameObject* player = new GameObject("Player");
+    player->AddComponent(new MovementState());
     player->AddComponent(new PlayerControl(0));
     player->AddComponent(new VelocityController());
     SpriteAnimator* animator = new SpriteAnimator(&playerMesh);
-    animator->AddClip("idle", 8, 9, 0, 8, 0.12f);
-    animator->Play("idle");
+    animator->AddClip("stand_left", 10, 10, 0, 1, 0.12f, false);
+    animator->AddClip("stand_right", 10, 10, 10, 1, 0.12f, false);
+    animator->AddClip("stand_up", 10, 10, 20, 1, 0.12f, false);
+    animator->AddClip("stand_down", 10, 10, 30, 1, 0.12f, false);
+    animator->AddClip("walk_left", 10, 10, 0, 8, 0.10f);
+    animator->AddClip("walk_right", 10, 10, 10, 8, 0.10f);
+    animator->AddClip("walk_up", 10, 10, 20, 8, 0.10f);
+    animator->AddClip("walk_down", 10, 10, 30, 8, 0.10f);
     player->AddComponent(animator);
     player->AddComponent(new MeshRenderer({ &playerMesh }, playerMaterial));
     loop.AddGameObject(player);

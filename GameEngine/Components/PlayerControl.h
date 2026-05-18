@@ -12,6 +12,8 @@
 #include "EngineTypes.h"
 #include "GameObject.h"
 
+class MovementState;
+
 class PlayerControl : public Component {
 public:
     // 입력이 들어왔을 때 pOwner->velocity에 반영할 이동 속도.
@@ -23,6 +25,7 @@ public:
     int moveRight = 0;
     int playerType = 0;
     int rotate = 0;
+    MovementState* movementState = nullptr;
 
     explicit PlayerControl(int type);
 

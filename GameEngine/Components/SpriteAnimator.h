@@ -7,6 +7,8 @@
 #include "Component.h"
 #include "Resources/Mesh.h"
 
+class MovementState;
+
 struct SpriteFrame {
     float u0 = 0.0f;
     float v0 = 0.0f;
@@ -26,15 +28,18 @@ public:
     explicit SpriteAnimator(Mesh* mesh);
 
     void AddClip(const std::string& name, int columns, int rows, int startFrame, int frameCount, float frameDuration, bool loop = true);
-    void Play(const std::string& name);
+    void Start() override;
     void Update(float dt) override;
 
 private:
     Mesh* mesh = nullptr;
+    MovementState* movementState = nullptr;
     std::unordered_map<std::string, AnimationClip> clips;
     AnimationClip* currentClip = nullptr;
+    std::string currentClipName;
     int currentFrameIndex = 0;
     float elapsedTime = 0.0f;
 
+    void SelectClipForState();
     void ApplyCurrentFrame();
 };

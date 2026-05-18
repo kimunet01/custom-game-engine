@@ -10,6 +10,7 @@
  */
 
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include "Component.h"
@@ -42,6 +43,23 @@ public:
 
     // 컴포넌트의 owner를 연결하고 목록에 등록한다.
     void AddComponent(Component* pComp);
+    template <typename T>
+    T* GetComponent();
     // 자식 오브젝트를 등록한다. 현재는 소멸 시 함께 삭제하는 ownership 역할이 중심이다.
     void AddChildObject(GameObject* pObject);
 };
+
+template <typename T>
+T* GameObject::GetComponent()
+{
+    static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
+
+    for (Component* component : components) {
+        T* matched = dynamic_cast<T*>(component);
+        if (matched != nullptr) {
+            return matched;
+        }
+    }
+
+    return nullptr;
+}
