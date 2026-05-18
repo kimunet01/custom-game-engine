@@ -60,6 +60,12 @@
     <ClCompile Include="Components\VelocityController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\AttackState.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\LifeState.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Components\MovementState.cpp">
       <Filter>Components</Filter>
     </ClCompile>
@@ -117,6 +123,12 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\VelocityController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\AttackState.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\LifeState.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\MovementState.h">

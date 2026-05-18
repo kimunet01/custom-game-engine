@@ -8,6 +8,8 @@
 #include "Resources/Mesh.h"
 
 class MovementState;
+class LifeState;
+class AttackState;
 
 struct SpriteFrame {
     float u0 = 0.0f;
@@ -33,6 +35,8 @@ public:
 
 private:
     Mesh* mesh = nullptr;
+    AttackState* attackState = nullptr;
+    LifeState* lifeState = nullptr;
     MovementState* movementState = nullptr;
     std::unordered_map<std::string, AnimationClip> clips;
     AnimationClip* currentClip = nullptr;
@@ -40,6 +44,7 @@ private:
     int currentFrameIndex = 0;
     float elapsedTime = 0.0f;
 
+    std::string GetClipNameForCurrentState() const;
     void SelectClipForState();
     void ApplyCurrentFrame();
 };

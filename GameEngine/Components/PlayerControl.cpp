@@ -1,5 +1,7 @@
 ﻿#include "PlayerControl.h"
 
+#include "AttackState.h"
+#include "LifeState.h"
 #include "MovementState.h"
 #include "GameObject.h"
 #include "Logger.h"
@@ -26,6 +28,7 @@ void PlayerControl::Input()
         moveLeft = localKeyState.left;
         moveRight = localKeyState.right;
         rotate = localKeyState.n;
+        attack = localKeyState.space;
     }
     else {
         // 2번 플레이어 입력: WASD 이동, M 키 회전.
@@ -34,13 +37,22 @@ void PlayerControl::Input()
         moveLeft = localKeyState.a;
         moveRight = localKeyState.d;
         rotate = localKeyState.m;
+        attack = localKeyState.space;
     }
 }
 
 void PlayerControl::Start()
 {
     if (pOwner != nullptr) {
+        attackState = pOwner->GetComponent<AttackState>();
+        lifeState = pOwner->GetComponent<LifeState>();
         movementState = pOwner->GetComponent<MovementState>();
+        if (attackState == nullptr) {
+            Logger::Warning("PlayerControl started without AttackState. owner=%s", pOwner->name.c_str());
+        }
+        if (lifeState == nullptr) {
+            Logger::Warning("PlayerControl started without LifeState. owner=%s", pOwner->name.c_str());
+        }
         if (movementState == nullptr) {
             Logger::Warning("PlayerControl started without MovementState. owner=%s", pOwner->name.c_str());
         }
@@ -55,6 +67,23 @@ void PlayerControl::Update(float dt)
 {
     if (pOwner == nullptr) {
         Logger::Warning("PlayerControl update skipped because owner is null");
+        return;
+    }
+
+    if (lifeState != nullptr && lifeState->IsDead()) {
+        pOwner->velocity.x = 0.0f;
+        pOwner->velocity.y = 0.0f;
+        return;
+    }
+
+    if (attack && !wasAttackPressed && attackState != nullptr) {
+        attackState->TriggerSwordAttack(0.6f);
+    }
+    wasAttackPressed = attack;
+
+    if (attackState != nullptr && attackState->IsAttacking()) {
+        pOwner->velocity.x = 0.0f;
+        pOwner->velocity.y = 0.0f;
         return;
     }
 

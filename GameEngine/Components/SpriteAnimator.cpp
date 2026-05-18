@@ -1,5 +1,7 @@
 #include "SpriteAnimator.h"
 
+#include "AttackState.h"
+#include "LifeState.h"
 #include "MovementState.h"
 #include "GameObject.h"
 #include "Logger.h"
@@ -51,9 +53,17 @@ void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int
 void SpriteAnimator::Start()
 {
     if (pOwner != nullptr) {
+        attackState = pOwner->GetComponent<AttackState>();
+        lifeState = pOwner->GetComponent<LifeState>();
         movementState = pOwner->GetComponent<MovementState>();
     }
 
+    if (attackState == nullptr) {
+        Logger::Warning("SpriteAnimator started without AttackState. owner=%s", pOwner ? pOwner->name.c_str() : "null");
+    }
+    if (lifeState == nullptr) {
+        Logger::Warning("SpriteAnimator started without LifeState. owner=%s", pOwner ? pOwner->name.c_str() : "null");
+    }
     if (movementState == nullptr) {
         Logger::Warning("SpriteAnimator started without MovementState. owner=%s", pOwner ? pOwner->name.c_str() : "null");
     }
@@ -86,20 +96,42 @@ void SpriteAnimator::Update(float dt)
     ApplyCurrentFrame();
 }
 
+std::string SpriteAnimator::GetClipNameForCurrentState() const
+{
+    if (lifeState != nullptr && lifeState->IsDead()) {
+        return "dead";
+    }
+
+    if (attackState != nullptr && attackState->IsAttacking()) {
+        if (attackState->GetState() == AttackStateType::SwordAttack) {
+            const char* direction = movementState != nullptr ? movementState->GetDirectionName() : "down";
+            return std::string("sword_attack_") + direction;
+        }
+
+        return attackState->GetStateName();
+    }
+
+    if (movementState != nullptr) {
+        return movementState->GetStateName();
+    }
+
+    return "";
+}
+
 void SpriteAnimator::SelectClipForState()
 {
-    if (movementState == nullptr) {
+    const std::string nextClipName = GetClipNameForCurrentState();
+    if (nextClipName.empty()) {
         return;
     }
 
-    const std::string nextClipName = movementState->GetStateName();
     if (currentClipName == nextClipName) {
         return;
     }
 
     auto it = clips.find(nextClipName);
     if (it == clips.end()) {
-        Logger::Warning("SpriteAnimator missing clip for animation state. state=%s", nextClipName.c_str());
+        Logger::Warning("SpriteAnimator missing clip for state. state=%s", nextClipName.c_str());
         currentClip = nullptr;
         currentClipName = nextClipName;
         return;

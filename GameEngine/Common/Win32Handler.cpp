@@ -45,6 +45,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'D') localKeyState.d = 1;
         if (wParam == 'N') localKeyState.n = 1;
         if (wParam == 'M') localKeyState.m = 1;
+        if (wParam == VK_SPACE) localKeyState.space = 1;
         if (wParam == 'F') {
             // F 키는 swap chain의 전체화면 상태를 토글한다.
             videoConfig.IsFullscreen = !videoConfig.IsFullscreen;
@@ -93,6 +94,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'D') localKeyState.d = 0;
         if (wParam == 'N') localKeyState.n = 0;
         if (wParam == 'M') localKeyState.m = 0;
+        if (wParam == VK_SPACE) localKeyState.space = 0;
         return 0;
 
     case WM_DESTROY:
