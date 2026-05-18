@@ -70,14 +70,21 @@ void PlayerControl::Update(float dt)
         return;
     }
 
+    const bool attackPressedThisFrame = attack && !wasAttackPressed;
+
+    if (movementState != nullptr) {
+        movementState->SetFromDirectionInput(moveUp, moveDown, moveLeft, moveRight);
+    }
+
     if (lifeState != nullptr && lifeState->IsDead()) {
         pOwner->velocity.x = 0.0f;
         pOwner->velocity.y = 0.0f;
+        wasAttackPressed = attack;
         return;
     }
 
-    if (attack && !wasAttackPressed && attackState != nullptr) {
-        attackState->TriggerSwordAttack(0.6f);
+    if (attackPressedThisFrame && attackState != nullptr && !attackState->IsAttacking()) {
+        attackState->TriggerSwordAttack(0.4f);
     }
     wasAttackPressed = attack;
 
@@ -106,10 +113,6 @@ void PlayerControl::Update(float dt)
     if (rotate) {
         // 회전은 위치 이동과 달리 이 컴포넌트가 직접 누적한다.
         pOwner->rotation += speed * dt;
-    }
-
-    if (movementState != nullptr) {
-        movementState->SetFromDirectionInput(moveUp, moveDown, moveLeft, moveRight);
     }
 }
 
