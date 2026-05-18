@@ -9,10 +9,12 @@
 #include <vector>
 
 #include "D3D11ResourceHandler.h"
+#include "AttackState.h"
 #include "MovementState.h"
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
+#include "LifeState.h"
 #include "Logger.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
@@ -73,6 +75,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
 
     GameObject* player = new GameObject("Player");
+    player->AddComponent(new AttackState());
+    player->AddComponent(new LifeState());
     player->AddComponent(new MovementState());
     player->AddComponent(new PlayerControl(0));
     player->AddComponent(new VelocityController());
@@ -85,6 +89,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     animator->AddClip("walk_right", 10, 10, 10, 8, 0.10f);
     animator->AddClip("walk_up", 10, 10, 20, 8, 0.10f);
     animator->AddClip("walk_down", 10, 10, 30, 8, 0.10f);
+    animator->AddClip("sword_attack_down", 10, 10, 40, 5, 0.08f, false);
+    animator->AddClip("sword_attack_up", 10, 10, 50, 5, 0.08f, false);
+    animator->AddClip("sword_attack_right", 10, 10, 60, 6, 0.08f, false);
+    animator->AddClip("sword_attack_left", 10, 10, 70, 6, 0.08f, false);
+    animator->AddClip("dead", 10, 10, 81, 1, 0.12f, false);
     player->AddComponent(animator);
     player->AddComponent(new MeshRenderer({ &playerMesh }, playerMaterial));
     loop.AddGameObject(player);

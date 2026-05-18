@@ -13,6 +13,8 @@
 #include "GameObject.h"
 
 class MovementState;
+class LifeState;
+class AttackState;
 
 class PlayerControl : public Component {
 public:
@@ -25,6 +27,10 @@ public:
     int moveRight = 0;
     int playerType = 0;
     int rotate = 0;
+    int attack = 0;
+    int wasAttackPressed = 0;
+    AttackState* attackState = nullptr;
+    LifeState* lifeState = nullptr;
     MovementState* movementState = nullptr;
 
     explicit PlayerControl(int type);

@@ -38,6 +38,7 @@ struct KeyState {
     int d = 0;
     int n = 0;
     int m = 0;
+    int space = 0;
 };
 
 // MeshRenderer가 Vertex Shader에 전달하는 행렬 상수 버퍼 구조.

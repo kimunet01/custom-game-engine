@@ -50,6 +50,26 @@ const char* MovementState::GetStateName() const
     return ToString(state);
 }
 
+const char* MovementState::GetDirectionName() const
+{
+    switch (state) {
+    case MovementStateType::WalkRight:
+    case MovementStateType::StandRight:
+        return "right";
+    case MovementStateType::WalkLeft:
+    case MovementStateType::StandLeft:
+        return "left";
+    case MovementStateType::WalkUp:
+    case MovementStateType::StandUp:
+        return "up";
+    case MovementStateType::WalkDown:
+    case MovementStateType::StandDown:
+        return "down";
+    default:
+        return "down";
+    }
+}
+
 MovementStateType MovementState::GetStandStateForCurrentDirection() const
 {
     switch (state) {

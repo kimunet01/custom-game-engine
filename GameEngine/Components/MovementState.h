@@ -24,6 +24,7 @@ public:
 
     MovementStateType GetState() const;
     const char* GetStateName() const;
+    const char* GetDirectionName() const;
 
 private:
     MovementStateType state;
