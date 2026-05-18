@@ -1,0 +1,23 @@
+reviews:
+  path_instructions:
+    - path: "GameEngine/**"
+      instructions: |
+        Priority 1: Check whether Logger calls can execute every game-loop frame.
+        - Carefully inspect Input, Update, Render, collision update, animation update, mesh update, material bind, and Win32 message handling paths.
+        - Flag any Logger call that can run continuously every frame during normal gameplay.
+        - This is especially important because logs may later be sent to Firebase, and per-frame logging can flood storage or quota.
+        - Logger calls are acceptable for initialization, shutdown, resource creation, resource failure, configuration changes, user-triggered events, and rare error paths.
+        - If a log is inside a frequently called function, verify that it is guarded by a rare condition or state transition.
+
+        Layer architecture review:
+        - The project roughly follows a layered structure: Core, FrameWork, Components, Common.
+        - Same-layer references are allowed.
+        - Component-to-Component references are not ideal, but they are not automatically wrong.
+        - Do not flag a dependency only because two files are in the same layer.
+        - Warn only when a dependency directly damages the layer structure, such as Common depending on game-specific Components/Core code, or low-level resource code depending on gameplay objects.
+        - Prefer comments that explain the architectural risk and suggest a cleaner dependency direction.
+
+        General engine review:
+        - Check DirectX COM resources for missing Release, double Release risk, and nullptr handling.
+        - Check whether GameLoop is accumulating too much specific gameplay, rendering, collision, or logging policy logic.
+        - Check ownership boundaries for GameObject, Component, Mesh, Material, and ShaderSet.
