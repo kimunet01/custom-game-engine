@@ -1,7 +1,11 @@
+language: ko-KR
+
 reviews:
   path_instructions:
     - path: "GameEngine/**"
       instructions: |
+        모든 리뷰 코멘트, 요약, 제안은 한국어로 작성하세요.
+
         Priority 1: Check whether Logger calls can execute every game-loop frame.
         - Carefully inspect Input, Update, Render, collision update, animation update, mesh update, material bind, and Win32 message handling paths.
         - Flag any Logger call that can run continuously every frame during normal gameplay.
