@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "GameObject.h"
+#include "Logger.h"
 
 /*
  * MeshRenderer.cpp
@@ -18,13 +19,28 @@ MeshRenderer::MeshRenderer(std::vector<Mesh*> meshes, Material* mat)
     , pMatrixBuffer(nullptr)
     , pMaterial(mat)
 {
+    Logger::Info("MeshRenderer created. meshCount=%zu hasMaterial=%d", this->meshes.size(), pMaterial != nullptr);
 }
 
 void MeshRenderer::Start()
 {
+    if (pOwner == nullptr) {
+        Logger::Warning("MeshRenderer start skipped because owner is null");
+        return;
+    }
+    if (pMaterial == nullptr) {
+        Logger::Warning("MeshRenderer start skipped because material is null. owner=%s", pOwner->name.c_str());
+        return;
+    }
+    if (meshes.empty()) {
+        Logger::Warning("MeshRenderer start skipped because mesh list is empty. owner=%s", pOwner->name.c_str());
+        return;
+    }
+
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pd3dDevice = ctx->getDevice();
     if (pd3dDevice == nullptr) {
+        Logger::Error("MeshRenderer cannot create matrix buffer because D3D11 device is null. owner=%s", pOwner->name.c_str());
         return;
     }
 
@@ -46,10 +62,12 @@ void MeshRenderer::Start()
     // CreateBuffer가 성공해야 Render에서 VS constant buffer로 바인딩할 수 있다.
     const HRESULT matrixHr = pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &pMatrixBuffer);
     if (FAILED(matrixHr) || pMatrixBuffer == nullptr) {
+        Logger::Error("MeshRenderer failed to create matrix buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(matrixHr));
         return;
     }
 
     isStarted = true;
+    Logger::Info("MeshRenderer started. owner=%s meshCount=%zu", pOwner->name.c_str(), meshes.size());
 }
 
 void MeshRenderer::Render()
@@ -112,4 +130,5 @@ MeshRenderer::~MeshRenderer() {
     if (pMatrixBuffer != nullptr) {
         pMatrixBuffer->Release();
     }
+    Logger::Info("MeshRenderer destroyed");
 }

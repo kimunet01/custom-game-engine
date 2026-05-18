@@ -1,5 +1,8 @@
 ﻿#include "PlayerControl.h"
 
+#include "GameObject.h"
+#include "Logger.h"
+
 /*
  * PlayerControl.cpp
  * PlayerControl의 입력 해석과 속도 갱신 로직을 구현한다.
@@ -10,6 +13,7 @@
 
 PlayerControl::PlayerControl(int type)
     : playerType(type) {
+    Logger::Info("PlayerControl created. playerType=%d", playerType);
 }
 
 void PlayerControl::Input()
@@ -36,10 +40,16 @@ void PlayerControl::Start()
 {
     // 현재 별도 초기화 리소스는 없지만, GameLoop가 중복 Start를 호출하지 않도록 상태를 표시한다.
     isStarted = true;
+    Logger::Info("PlayerControl started. owner=%s playerType=%d", pOwner ? pOwner->name.c_str() : "null", playerType);
 }
 
 void PlayerControl::Update(float dt)
 {
+    if (pOwner == nullptr) {
+        Logger::Warning("PlayerControl update skipped because owner is null");
+        return;
+    }
+
     // 입력이 없는 프레임에는 멈추도록 매 프레임 velocity를 먼저 초기화한다.
     pOwner->velocity.x = 0.0f;
     pOwner->velocity.y = 0.0f;

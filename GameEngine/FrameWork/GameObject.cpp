@@ -1,4 +1,5 @@
 ﻿#include "GameObject.h"
+#include "Logger.h"
 
 /*
  * GameObject.cpp
@@ -13,11 +14,13 @@ GameObject::GameObject(const std::string& n)
     velocity.x = 0.f;
     velocity.y = 0.f;
     velocity.z = 0.f;
+    Logger::Info("GameObject created. name=%s", name.c_str());
 }
 
 // 부착된 컴포넌트와 자식 오브젝트는 GameObject가 소유한다.
 // 따라서 GameLoop가 GameObject를 delete하면 하위 구성도 함께 정리된다.
 GameObject::~GameObject() {
+    Logger::Info("GameObject destroyed. name=%s componentCount=%zu childCount=%zu", name.c_str(), components.size(), childObjects.size());
     for (Component* component : components) {
         delete component;
     }
@@ -30,13 +33,25 @@ GameObject::~GameObject() {
 // GameLoop는 이후 pOwner를 통해 컴포넌트가 자신이 붙은 오브젝트 상태에 접근한다고 가정한다.
 void GameObject::AddComponent(Component* pComp)
 {
+    if (pComp == nullptr) {
+        Logger::Warning("GameObject ignored null Component. name=%s", name.c_str());
+        return;
+    }
+
     pComp->pOwner = this;
     pComp->isStarted = false;
     components.push_back(pComp);
+    Logger::Info("Component added. owner=%s componentCount=%zu", name.c_str(), components.size());
 }
 
 void GameObject::AddChildObject(GameObject* pObject) {
+    if (pObject == nullptr) {
+        Logger::Warning("GameObject ignored null child. name=%s", name.c_str());
+        return;
+    }
+
     // 현재 parentObject 연결은 하지 않고 childObjects에만 보관한다.
     // transform 계층 구조가 필요해지면 parentObject 설정과 월드 변환 상속을 함께 추가해야 한다.
     childObjects.push_back(pObject);
+    Logger::Info("Child GameObject added. parent=%s child=%s childCount=%zu", name.c_str(), pObject->name.c_str(), childObjects.size());
 }

@@ -147,6 +147,7 @@
     <ClCompile Include="Common\Resources\Mesh.cpp" />
     <ClCompile Include="Common\Resources\Material.cpp" />
     <ClCompile Include="Common\Resources\ShaderSet.cpp" />
+    <ClCompile Include="Common\Logger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
@@ -166,6 +167,7 @@
     <ClInclude Include="Common\Resources\Mesh.h" />
     <ClInclude Include="Common\Resources\Material.h" />
     <ClInclude Include="Common\Resources\ShaderSet.h" />
+    <ClInclude Include="Common\Logger.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl" />

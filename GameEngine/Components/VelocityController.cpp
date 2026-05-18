@@ -1,6 +1,7 @@
 ﻿#include "VelocityController.h"
 
 #include "GameObject.h"
+#include "Logger.h"
 #include "Utils.h"
 
 /*
@@ -14,11 +15,13 @@
 VelocityController::VelocityController(float maxDelta)
     : maxDelta(maxDelta)
 {
+    Logger::Info("VelocityController created. maxDelta=%.3f", maxDelta);
 }
 
 void VelocityController::Update(float dt)
 {
     if (pOwner == nullptr) {
+        Logger::Warning("VelocityController update skipped because owner is null");
         return;
     }
 

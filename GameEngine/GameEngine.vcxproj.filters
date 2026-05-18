@@ -75,6 +75,9 @@
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp">
       <Filter>Common\Resources\Materials</Filter>
     </ClCompile>
+    <ClCompile Include="Common\Logger.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\D3D11ResourceHandler.h">
@@ -127,6 +130,9 @@
     </ClInclude>
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h">
       <Filter>Common\Resources\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Logger.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

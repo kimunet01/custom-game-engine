@@ -5,6 +5,8 @@
 #include <d3dcompiler.h>
 #include <stdio.h>
 
+#include "Logger.h"
+
 /*
  * D3D11ResourceHandler.cpp
  * GraphicsContext의 실제 구현 파일이다.
@@ -23,6 +25,7 @@ GraphicsContext::GraphicsContext()
     , pSwapChain(nullptr)
     , pRenderTargetView(nullptr)
 {
+    Logger::Info("GraphicsContext created");
 }
 
 GraphicsContext* GraphicsContext::getInstance()
@@ -36,6 +39,7 @@ GraphicsContext* GraphicsContext::getInstance()
 void GraphicsContext::Release()
 {
     if (pInstance) {
+        Logger::Info("GraphicsContext singleton released");
         delete pInstance;
         pInstance = nullptr;
     }
@@ -96,6 +100,7 @@ void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
         &pImmediateContext
     );
     if (FAILED(deviceResult)) {
+        Logger::Error("D3D11CreateDeviceAndSwapChain failed. hr=0x%08X", static_cast<unsigned int>(deviceResult));
         return;
     }
 
@@ -108,6 +113,7 @@ void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
         reinterpret_cast<void**>(&pBackBuffer)
     );
     if (FAILED(backBufferResult) || pBackBuffer == nullptr) {
+        Logger::Error("SwapChain GetBuffer failed. hr=0x%08X", static_cast<unsigned int>(backBufferResult));
         return;
     }
 
@@ -115,8 +121,10 @@ void GraphicsContext::createDeviceAndSwapChainAndRTV(int width, int height)
         pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &pRenderTargetView);
     pBackBuffer->Release();
     if (FAILED(renderTargetResult)) {
+        Logger::Error("CreateRenderTargetView failed. hr=0x%08X", static_cast<unsigned int>(renderTargetResult));
         return;
     }
+    Logger::Info("D3D11 device, swap chain, and RTV created. width=%d height=%d", width, height);
 }
 
 void GraphicsContext::createWindow(HINSTANCE hInstance, int nCmdShow, const wchar_t* winClassName, int width, int height)
@@ -147,10 +155,12 @@ void GraphicsContext::createWindow(HINSTANCE hInstance, int nCmdShow, const wcha
         this
     );
     if (!hWnd) {
+        Logger::Error("CreateWindowW failed");
         return;
     }
 
     ShowWindow(hWnd, nCmdShow);
+    Logger::Info("Window created. width=%d height=%d", width, height);
 }
 
 void GraphicsContext::RebuildVideoResource()
@@ -170,7 +180,7 @@ void GraphicsContext::RebuildVideoResource()
     ID3D11Texture2D* pBackBuffer = nullptr;
     pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&pBackBuffer);
     if (pBackBuffer == nullptr) {
-        printf("GetBuffer Error\n");
+        Logger::Error("GetBuffer failed while rebuilding video resources");
         return;
     }
     // RTV를 재생성해야 이후 Render 단계에서 새 back buffer에 그릴 수 있다.
@@ -184,7 +194,7 @@ void GraphicsContext::RebuildVideoResource()
     }
 
     videoConfig.NeedsResize = false;
-    printf("Video Resized\n");
+    Logger::Info("Video resized. width=%d height=%d", videoConfig.Width, videoConfig.Height);
 }
 
 ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t length, bool isFile, D3D11_INPUT_ELEMENT_DESC* ied, UINT iedCount)
@@ -208,7 +218,11 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
     if (FAILED(hr)) {
         if (errBlob) {
             OutputDebugStringA(static_cast<char*>(errBlob->GetBufferPointer()));
+            Logger::Error("Vertex shader compile failed: %s", static_cast<char*>(errBlob->GetBufferPointer()));
             errBlob->Release();
+        }
+        else {
+            Logger::Error("Vertex shader compile failed. hr=0x%08X", static_cast<unsigned int>(hr));
         }
         return res;
     }
@@ -229,13 +243,18 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
     if (FAILED(hr)) {
         if (errBlob) {
             OutputDebugStringA(static_cast<char*>(errBlob->GetBufferPointer()));
+            Logger::Error("Pixel shader compile failed: %s", static_cast<char*>(errBlob->GetBufferPointer()));
             errBlob->Release();
+        }
+        else {
+            Logger::Error("Pixel shader compile failed. hr=0x%08X", static_cast<unsigned int>(hr));
         }
         if (vsBlob) vsBlob->Release();
         return res;
     }
 
     if (!pd3dDevice) {
+        Logger::Error("Cannot create shaders because D3D11 device is null");
         if (vsBlob) vsBlob->Release();
         if (psBlob) psBlob->Release();
         if (errBlob) errBlob->Release();
@@ -245,6 +264,7 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
     // 컴파일된 bytecode blob을 실제 D3D11 shader 객체로 변환한다.
     hr = pd3dDevice->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &res.vs);
     if (FAILED(hr)) {
+        Logger::Error("CreateVertexShader failed. hr=0x%08X", static_cast<unsigned int>(hr));
         if (vsBlob) vsBlob->Release();
         if (psBlob) psBlob->Release();
         if (errBlob) errBlob->Release();
@@ -254,6 +274,7 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
     hr = pd3dDevice->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &res.ps);
     if (FAILED(hr)) {
         res = ShaderSet();
+        Logger::Error("CreatePixelShader failed. hr=0x%08X", static_cast<unsigned int>(hr));
         if (vsBlob) vsBlob->Release();
         if (psBlob) psBlob->Release();
         if (errBlob) errBlob->Release();
@@ -265,6 +286,7 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
         hr = pd3dDevice->CreateInputLayout(ied, iedCount, vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &res.layout);
         if (FAILED(hr)) {
             res = ShaderSet();
+            Logger::Error("CreateInputLayout failed. hr=0x%08X", static_cast<unsigned int>(hr));
             if (vsBlob) vsBlob->Release();
             if (psBlob) psBlob->Release();
             if (errBlob) errBlob->Release();
@@ -276,17 +298,24 @@ ShaderSet GraphicsContext::CompileAndCreate(const void* source, std::size_t leng
     if (psBlob) psBlob->Release();
     if (errBlob) errBlob->Release();
 
+    Logger::Info("ShaderSet compiled and created");
     return res;
 }
 
 void GraphicsContext::CleanUp()
 {
+    Logger::Info("GraphicsContext cleanup started");
     // GraphicsContext가 직접 만든 COM 객체를 역순에 가깝게 해제한다.
     // 각 포인터는 raw COM pointer이므로 Release 호출을 빠뜨리면 GPU 리소스 누수가 생긴다.
     if (pRenderTargetView) pRenderTargetView->Release();
     if (pSwapChain) pSwapChain->Release();
     if (pImmediateContext) pImmediateContext->Release();
     if (pd3dDevice) pd3dDevice->Release();
+    pRenderTargetView = nullptr;
+    pSwapChain = nullptr;
+    pImmediateContext = nullptr;
+    pd3dDevice = nullptr;
+    Logger::Info("GraphicsContext cleanup finished");
 }
 
 GraphicsContext::~GraphicsContext()

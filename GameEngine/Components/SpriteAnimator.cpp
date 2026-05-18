@@ -1,13 +1,17 @@
 #include "SpriteAnimator.h"
 
+#include "Logger.h"
+
 SpriteAnimator::SpriteAnimator(Mesh* mesh)
     : mesh(mesh)
 {
+    Logger::Info("SpriteAnimator created. hasMesh=%d", mesh != nullptr);
 }
 
 void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int startFrame, int frameCount, float frameDuration, bool loop)
 {
     if (columns <= 0 || rows <= 0 || frameCount <= 0) {
+        Logger::Warning("SpriteAnimator ignored invalid clip. name=%s columns=%d rows=%d frameCount=%d", name.c_str(), columns, rows, frameCount);
         return;
     }
 
@@ -35,6 +39,10 @@ void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int
 
     if (!clip.frames.empty()) {
         clips[name] = clip;
+        Logger::Info("SpriteAnimator clip added. name=%s frameCount=%zu", name.c_str(), clip.frames.size());
+    }
+    else {
+        Logger::Warning("SpriteAnimator clip has no frames. name=%s", name.c_str());
     }
 }
 
@@ -42,6 +50,7 @@ void SpriteAnimator::Play(const std::string& name)
 {
     auto it = clips.find(name);
     if (it == clips.end()) {
+        Logger::Warning("SpriteAnimator cannot play missing clip. name=%s", name.c_str());
         return;
     }
 
@@ -53,6 +62,7 @@ void SpriteAnimator::Play(const std::string& name)
     currentFrameIndex = 0;
     elapsedTime = 0.0f;
     ApplyCurrentFrame();
+    Logger::Info("SpriteAnimator playing clip. name=%s", name.c_str());
 }
 
 void SpriteAnimator::Update(float dt)

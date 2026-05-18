@@ -1,5 +1,6 @@
 ﻿#include "Win32Handler.h"
 #include "D3D11ResourceHandler.h"
+#include "Logger.h"
 
 /*
  * Win32Handler.cpp
@@ -47,11 +48,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == 'F') {
             // F 키는 swap chain의 전체화면 상태를 토글한다.
             videoConfig.IsFullscreen = !videoConfig.IsFullscreen;
-            pSwapChain->SetFullscreenState(videoConfig.IsFullscreen, nullptr);
+            if (pSwapChain != nullptr) {
+                pSwapChain->SetFullscreenState(videoConfig.IsFullscreen, nullptr);
+                Logger::Info("Fullscreen toggled. enabled=%d", videoConfig.IsFullscreen);
+            }
+            else {
+                Logger::Warning("Fullscreen toggle ignored because swap chain is null");
+            }
         }
         if (wParam == VK_ESCAPE && isFirstKeydown) {
             // ESC는 한 번 눌렸을 때만 종료 메시지를 보낸다.
             // 키 반복으로 PostQuitMessage가 여러 번 호출되는 것을 피하기 위한 조건이다.
+            Logger::Info("Quit requested by ESC");
             PostQuitMessage(0);
             return 0;
         }
@@ -61,11 +69,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             videoConfig.NeedsResize = true;
             videoConfig.Width = 1600;
             videoConfig.Height = 900;
+            Logger::Info("Resize requested. width=%d height=%d", videoConfig.Width, videoConfig.Height);
         }
         if (wParam == '2') {
             videoConfig.NeedsResize = true;
             videoConfig.Width = 800;
             videoConfig.Height = 400;
+            Logger::Info("Resize requested. width=%d height=%d", videoConfig.Width, videoConfig.Height);
         }
         if (videoConfig.NeedsResize) GraphicsContext::getInstance()->RebuildVideoResource();
         return 0;
@@ -87,6 +97,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_DESTROY:
         // 창이 닫히면 GameLoop::Input에서 WM_QUIT을 보고 루프를 종료할 수 있도록 한다.
+        Logger::Info("Window destroyed");
         PostQuitMessage(0);
         return 0;
     }

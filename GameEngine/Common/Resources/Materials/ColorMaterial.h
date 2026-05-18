@@ -10,6 +10,7 @@
  */
 
 #include "D3D11ResourceHandler.h"
+#include "Logger.h"
 #include "../Material.h"
 
 // HLSL의 cbuffer ColorBuffer와 맞춰 Pixel Shader에 전달할 색상 데이터.
@@ -33,6 +34,11 @@ public:
     {
         GraphicsContext* ctx = GraphicsContext::getInstance();
         ID3D11Device* pDevice = ctx->getDevice();
+        if (pDevice == nullptr) {
+            Logger::Error("ColorMaterial cannot create color buffer because D3D11 device is null");
+            return;
+        }
+
         // 색상 정보를 담을 전용 상수 버퍼를 만든다.
         // 버퍼 크기는 HLSL의 ColorBuffer와 동일해야 한다.
         D3D11_BUFFER_DESC cbd = { 0 };
@@ -40,13 +46,20 @@ public:
         cbd.ByteWidth = sizeof(ColorBuffer);
         cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
-        pDevice->CreateBuffer(&cbd, nullptr, &pColorBuffer);
+        const HRESULT hr = pDevice->CreateBuffer(&cbd, nullptr, &pColorBuffer);
+        if (FAILED(hr) || pColorBuffer == nullptr) {
+            Logger::Error("ColorMaterial failed to create color buffer. hr=0x%08X", static_cast<unsigned int>(hr));
+        }
+        else {
+            Logger::Info("ColorMaterial created");
+        }
     }
 
     virtual ~ColorMaterial()
     {
         // 머티리얼이 만든 상수 버퍼는 머티리얼 소멸 시 직접 해제한다.
         if (pColorBuffer) pColorBuffer->Release();
+        Logger::Info("ColorMaterial destroyed");
     }
 
     // 색상을 실시간으로 바꿀 수 있게 제공한다.
@@ -57,6 +70,11 @@ public:
     {
         GraphicsContext* ctx = GraphicsContext::getInstance();
         ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
+        if (pImmediateContext == nullptr || pColorBuffer == nullptr) {
+            Logger::Warning("ColorMaterial bind skipped because GPU state is invalid");
+            return;
+        }
+
         // 1. 이 머티리얼이 사용하는 셰이더와 input layout을 파이프라인에 바인딩한다.
         pImmediateContext->IASetInputLayout(shaders.layout);
         pImmediateContext->VSSetShader(shaders.vs, nullptr, 0);

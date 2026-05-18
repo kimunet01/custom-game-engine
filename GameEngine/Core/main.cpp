@@ -12,6 +12,7 @@
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
+#include "Logger.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
 #include "Resources/Materials/TextureMaterial.h"
@@ -48,6 +49,7 @@ std::vector<Vertex> CreateSpriteQuadMesh(float width, float height, float u0, fl
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
+    Logger::Info("Application started");
     GraphicsContext* ctx = GraphicsContext::getInstance();
 
     D3D11_INPUT_ELEMENT_DESC textureIed[] =
@@ -81,6 +83,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     loop.Run();
 
+    Logger::Info("Application shutting down");
     ctx->CleanUp();
     return 0;
 }

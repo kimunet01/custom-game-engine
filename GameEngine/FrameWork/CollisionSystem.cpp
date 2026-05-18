@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "GameObject.h"
+#include "Logger.h"
 
 /*
  * CollisionSystem.cpp
@@ -21,11 +22,13 @@ CollisionSystem::CollisionSystem(float distance)
     , maxY(0.65f)
     , isLosePrinted(false)
 {
+    Logger::Info("CollisionSystem created. distance=%.3f bounds=(%.2f, %.2f, %.2f, %.2f)", collisionDistance, minX, maxX, minY, maxY);
 }
 
 void CollisionSystem::SetCollisionDistance(float distance)
 {
     collisionDistance = distance;
+    Logger::Info("CollisionSystem collision distance changed. distance=%.3f", collisionDistance);
 }
 
 float CollisionSystem::GetCollisionDistance() const
@@ -39,6 +42,7 @@ void CollisionSystem::SetBounds(float minX, float maxX, float minY, float maxY)
     this->maxX = maxX;
     this->minY = minY;
     this->maxY = maxY;
+    Logger::Info("CollisionSystem bounds changed. minX=%.2f maxX=%.2f minY=%.2f maxY=%.2f", minX, maxX, minY, maxY);
 }
 
 float CollisionSystem::GetMinX() const
@@ -246,7 +250,7 @@ void CollisionSystem::NotifyCollision(const CollisionPair& pair)
     const bool secondIsBullet = pair.second != nullptr && pair.second->name.find("Bullet") == 0;
 
     if (!isLosePrinted && ((firstIsPlayer && secondIsBullet) || (secondIsPlayer && firstIsBullet))) {
-        std::printf("lose!\n");
+        Logger::Info("lose!");
         isLosePrinted = true;
     }
 }

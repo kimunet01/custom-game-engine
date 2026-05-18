@@ -7,16 +7,20 @@
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "windowscodecs.lib")
 
+#include "Logger.h"
 #include "Utils.h"
 
 TextureMaterial::TextureMaterial(const ShaderSet& s, const wchar_t* texturePath)
     : Material(s)
 {
-    LoadTextureFromFile(texturePath);
+    if (!LoadTextureFromFile(texturePath)) {
+        Logger::Error("TextureMaterial failed to load texture");
+    }
 
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pDevice = ctx->getDevice();
     if (pDevice == nullptr) {
+        Logger::Error("TextureMaterial cannot create states because D3D11 device is null");
         return;
     }
 
@@ -29,7 +33,10 @@ TextureMaterial::TextureMaterial(const ShaderSet& s, const wchar_t* texturePath)
     samplerDesc.MinLOD = 0;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-    pDevice->CreateSamplerState(&samplerDesc, &pSamplerState);
+    HRESULT hr = pDevice->CreateSamplerState(&samplerDesc, &pSamplerState);
+    if (FAILED(hr)) {
+        Logger::Error("CreateSamplerState failed. hr=0x%08X", static_cast<unsigned int>(hr));
+    }
 
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.RenderTarget[0].BlendEnable = TRUE;
@@ -41,7 +48,13 @@ TextureMaterial::TextureMaterial(const ShaderSet& s, const wchar_t* texturePath)
     blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
     blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-    pDevice->CreateBlendState(&blendDesc, &pBlendState);
+    hr = pDevice->CreateBlendState(&blendDesc, &pBlendState);
+    if (FAILED(hr)) {
+        Logger::Error("CreateBlendState failed. hr=0x%08X", static_cast<unsigned int>(hr));
+    }
+    else {
+        Logger::Info("TextureMaterial created");
+    }
 }
 
 TextureMaterial::~TextureMaterial()
@@ -49,6 +62,7 @@ TextureMaterial::~TextureMaterial()
     SafeRelease(pBlendState);
     SafeRelease(pSamplerState);
     SafeRelease(pTextureView);
+    Logger::Info("TextureMaterial destroyed");
 }
 
 void TextureMaterial::Bind()
@@ -56,6 +70,7 @@ void TextureMaterial::Bind()
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11DeviceContext* pImmediateContext = ctx->getDeviceContext();
     if (pImmediateContext == nullptr) {
+        Logger::Warning("TextureMaterial bind skipped because D3D11 device context is null");
         return;
     }
 
@@ -72,6 +87,7 @@ bool TextureMaterial::LoadTextureFromFile(const wchar_t* texturePath)
     HRESULT coHr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     const bool shouldUninitialize = SUCCEEDED(coHr);
     if (FAILED(coHr) && coHr != RPC_E_CHANGED_MODE) {
+        Logger::Error("CoInitializeEx failed while loading texture. hr=0x%08X", static_cast<unsigned int>(coHr));
         return false;
     }
 
@@ -137,6 +153,7 @@ bool TextureMaterial::LoadTextureFromFile(const wchar_t* texturePath)
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pDevice = ctx->getDevice();
     if (SUCCEEDED(hr) && pDevice == nullptr) {
+        Logger::Error("Cannot create texture because D3D11 device is null");
         hr = E_FAIL;
     }
 
@@ -172,5 +189,11 @@ bool TextureMaterial::LoadTextureFromFile(const wchar_t* texturePath)
         CoUninitialize();
     }
 
-    return SUCCEEDED(hr) && pTextureView != nullptr;
+    if (SUCCEEDED(hr) && pTextureView != nullptr) {
+        Logger::Info("Texture loaded. width=%u height=%u", width, height);
+        return true;
+    }
+
+    Logger::Error("Texture load failed. hr=0x%08X", static_cast<unsigned int>(hr));
+    return false;
 }

@@ -1,5 +1,6 @@
 ﻿#include "GameLoop.h"
 #include <thread>
+#include "Logger.h"
 
 /*
  * GameLoop.cpp
@@ -12,12 +13,14 @@
 GameLoop::GameLoop()
 {
     Initialize();
+    Logger::Info("GameLoop created");
 }
 
 // GameLoop는 gameWorld에 등록된 GameObject의 소유권을 가진다.
 // 따라서 루프가 파괴될 때 등록된 오브젝트들을 모두 delete한다.
 GameLoop::~GameLoop()
 {
+    Logger::Info("GameLoop destroying %zu object(s)", gameWorld.size());
     for (GameObject* object : gameWorld) {
         delete object;
     }
@@ -29,13 +32,20 @@ void GameLoop::Initialize()
     isRunning = true;
     prevTime = std::chrono::high_resolution_clock::now();
     deltaTime = 0.0f;
+    Logger::Info("GameLoop initialized");
 }
 
 // 오브젝트를 월드에 등록한다.
 // 현재 raw pointer를 받으므로 중복 등록이나 외부 delete는 호출자가 조심해야 한다.
 void GameLoop::AddGameObject(GameObject* object)
 {
+    if (object == nullptr) {
+        Logger::Warning("GameLoop ignored null GameObject");
+        return;
+    }
+
     gameWorld.push_back(object);
+    Logger::Info("GameObject added to world. objectCount=%zu", gameWorld.size());
 }
 
 // Input 단계:
@@ -128,6 +138,7 @@ void GameLoop::Render()
 // 매 프레임 deltaTime을 계산한 뒤 Input -> Update -> Render 순서로 실행한다.
 void GameLoop::Run()
 {
+    Logger::Info("GameLoop started");
     while (isRunning) {
         const auto currentTime = std::chrono::high_resolution_clock::now();
         const std::chrono::duration<float> elapsed = currentTime - prevTime;
@@ -138,4 +149,5 @@ void GameLoop::Run()
         Update();
         Render();
     }
+    Logger::Info("GameLoop stopped");
 }
