@@ -3,56 +3,43 @@
 #include "Logger.h"
 
 MovementState::MovementState()
-    : state(MovementStateType::StandDown)
 {
+    // ObservableState의 current는 enum의 0번째 값(StandRight)으로 영초기화된다.
+    // 의미 있는 초기 방향(StandDown)으로 직접 지정한다. 구독자가 아직 없어 콜백 발화는 발생하지 않는다.
+    current = MovementStateType::StandDown;
     Logger::Info("MovementState created. state=%s", GetStateName());
-}
-
-void MovementState::SetState(MovementStateType newState)
-{
-    if (state == newState) {
-        return;
-    }
-
-    state = newState;
-    Logger::Info("MovementState changed. state=%s", GetStateName());
 }
 
 void MovementState::SetFromDirectionInput(bool moveUp, bool moveDown, bool moveLeft, bool moveRight)
 {
     if (moveRight) {
-        SetState(MovementStateType::WalkRight);
+        Set(MovementStateType::WalkRight);
         return;
     }
     if (moveLeft) {
-        SetState(MovementStateType::WalkLeft);
+        Set(MovementStateType::WalkLeft);
         return;
     }
     if (moveUp) {
-        SetState(MovementStateType::WalkUp);
+        Set(MovementStateType::WalkUp);
         return;
     }
     if (moveDown) {
-        SetState(MovementStateType::WalkDown);
+        Set(MovementStateType::WalkDown);
         return;
     }
 
-    SetState(GetStandStateForCurrentDirection());
-}
-
-MovementStateType MovementState::GetState() const
-{
-    return state;
+    Set(GetStandStateForCurrentDirection());
 }
 
 const char* MovementState::GetStateName() const
 {
-    return ToString(state);
+    return ToString(Get());
 }
 
 const char* MovementState::GetDirectionName() const
 {
-    switch (state) {
+    switch (Get()) {
     case MovementStateType::WalkRight:
     case MovementStateType::StandRight:
         return "right";
@@ -72,7 +59,7 @@ const char* MovementState::GetDirectionName() const
 
 MovementStateType MovementState::GetStandStateForCurrentDirection() const
 {
-    switch (state) {
+    switch (Get()) {
     case MovementStateType::WalkRight:
     case MovementStateType::StandRight:
         return MovementStateType::StandRight;
@@ -94,13 +81,13 @@ const char* MovementState::ToString(MovementStateType state)
 {
     switch (state) {
     case MovementStateType::StandRight: return "stand_right";
-    case MovementStateType::StandLeft: return "stand_left";
-    case MovementStateType::StandUp: return "stand_up";
-    case MovementStateType::StandDown: return "stand_down";
-    case MovementStateType::WalkRight: return "walk_right";
-    case MovementStateType::WalkLeft: return "walk_left";
-    case MovementStateType::WalkUp: return "walk_up";
-    case MovementStateType::WalkDown: return "walk_down";
-    default: return "unknown";
+    case MovementStateType::StandLeft:  return "stand_left";
+    case MovementStateType::StandUp:    return "stand_up";
+    case MovementStateType::StandDown:  return "stand_down";
+    case MovementStateType::WalkRight:  return "walk_right";
+    case MovementStateType::WalkLeft:   return "walk_left";
+    case MovementStateType::WalkUp:     return "walk_up";
+    case MovementStateType::WalkDown:   return "walk_down";
+    default:                            return "unknown";
     }
 }

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "D3D11ResourceHandler.h"
+#include "AttackController.h"
 #include "AttackState.h"
 #include "MovementState.h"
 #include "EngineTypes.h"
@@ -75,9 +76,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
 
     GameObject* player = new GameObject("Player");
-    player->AddComponent(new AttackState());
-    player->AddComponent(new LifeState());
-    player->AddComponent(new MovementState());
+    // State는 Component가 아닌 데이터 단위. GameObject의 states 컬렉션에 등록한다.
+    // 콜백을 구독하는 PlayerControl/SpriteAnimator보다 먼저 등록되어야 Start() 시점에 GetState로 발견된다.
+    player->AddState(new AttackState());
+    player->AddState(new LifeState());
+    player->AddState(new MovementState());
+    // AttackController는 AttackState를 조작하므로 State보다 뒤, 그리고 자신을 참조하는 PlayerControl보다 앞에 등록한다.
+    player->AddComponent(new AttackController());
     player->AddComponent(new PlayerControl(0));
     player->AddComponent(new VelocityController());
     SpriteAnimator* animator = new SpriteAnimator(&playerMesh);

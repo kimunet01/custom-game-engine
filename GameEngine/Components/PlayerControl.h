@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 /*
  * PlayerControl.h
@@ -6,6 +6,11 @@
  *
  * 이 컴포넌트는 위치를 직접 이동시키지 않고 원하는 속도만 설정한다. 실제 위치 갱신은
  * VelocityController가 담당하므로, 입력 처리와 이동 적용 책임이 분리되어 있다.
+ *
+ * State 폴링은 더 이상 하지 않는다. 대신:
+ *   - LifeState 변경 → 콜백이 isMovementLocked 갱신
+ *   - AttackState 변경 → 콜백이 isAttackLocked 갱신
+ * Update에서는 이 두 플래그만 보고 입력 잠금 여부를 결정한다.
  */
 
 #include "Component.h"
@@ -13,8 +18,7 @@
 #include "GameObject.h"
 
 class MovementState;
-class LifeState;
-class AttackState;
+class AttackController;
 
 class PlayerControl : public Component {
 public:
@@ -29,9 +33,17 @@ public:
     int rotate = 0;
     int attack = 0;
     int wasAttackPressed = 0;
-    AttackState* attackState = nullptr;
-    LifeState* lifeState = nullptr;
+
+    // 콜백이 갱신하는 입력 잠금 플래그. Update가 직접 읽는다.
+    // LifeState가 Dead가 되면 true → 이동 입력 차단.
+    bool isMovementLocked = false;
+    // AttackState가 NoAttack이 아니면 true → 이동/추가 공격 입력 차단.
+    bool isAttackLocked = false;
+
+    // 입력에 따라 MovementState를 직접 Set하기 위한 write 측 참조. Start에서 1회 캐싱한다.
     MovementState* movementState = nullptr;
+    // 공격 발동을 위탁할 Controller. Task 6에서 main이 등록한다.
+    AttackController* attackController = nullptr;
 
     explicit PlayerControl(int type);
 
@@ -40,6 +52,6 @@ public:
     // WndProc가 캐싱한 키 상태를 읽어 이번 프레임 입력 플래그로 변환한다.
     void Input() override;
 
-    // 입력 플래그를 기반으로 pOwner의 원하는 속도와 회전을 갱신한다.
+    // 입력 플래그와 잠금 플래그를 기반으로 pOwner의 원하는 속도와 회전을 갱신한다.
     void Update(float dt) override;
 };
