@@ -99,6 +99,15 @@
     <ClCompile Include="Common\Logger.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Components\EnemyController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\EnemySpawner.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="States\EnemyState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\D3D11ResourceHandler.h">
@@ -173,6 +182,15 @@
     <ClInclude Include="Common\Logger.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Components\EnemySpawner.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\EnemyController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="States\EnemyState.h">
+      <Filter>States</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\chmov.png">
@@ -187,5 +205,8 @@
     <None Include="Common\Resources\Shaders\TextureShader.hlsl">
       <Filter>Common\Resources\Shaders</Filter>
     </None>
+    <Image Include="assets\Enemy.png">
+      <Filter>assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>

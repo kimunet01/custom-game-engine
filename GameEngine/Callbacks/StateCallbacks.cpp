@@ -6,6 +6,8 @@
 #include "Logger.h"
 #include "PlayerControl.h"
 #include "SpriteAnimator.h"
+#include "EnemyController.h"
+#include "EnemyState.h"
 
 namespace
 {
@@ -99,5 +101,36 @@ namespace StateCallbacks
             return;
         }
         self->isAttackLocked = (next != AttackStateType::NoAttack);
+    }
+
+    // --- 2026-05-23: 리팩토링 가이드(중앙 집중화) 원칙에 따른 Enemy 관련 콜백 통합 추가 ---
+
+    void OnAnimEnemy(SpriteAnimator* self, EnemyStateType prev, EnemyStateType next)
+    {
+        Logger::Info("StateCallbacks::OnAnimEnemy %s -> %s",
+                     EnemyState::ToString(prev), EnemyState::ToString(next));
+        
+        if (self == nullptr || self->pOwner == nullptr) return;
+        self->SwitchToClip(EnemyState::ToString(next));
+    }
+
+    void OnControlEnemy(EnemyController* self, EnemyStateType prev, EnemyStateType next)
+    {
+        Logger::Info("StateCallbacks::OnControlEnemy %s -> %s",
+                     EnemyState::ToString(prev), EnemyState::ToString(next));
+        if (self == nullptr) return;
+
+        // Move 이외의 상태(Dead, Disabled)에서는 움직임을 잠금
+        self->isMovementLocked = (next != EnemyStateType::Move);
+    }
+
+    void ReevaluateEnemyAnimClip(SpriteAnimator* self)
+    {
+        if (self == nullptr || self->pOwner == nullptr) return;
+
+        EnemyState* enemy = self->pOwner->GetState<EnemyState>();
+        if (enemy != nullptr) {
+            self->SwitchToClip(enemy->GetStateName());
+        }
     }
 }

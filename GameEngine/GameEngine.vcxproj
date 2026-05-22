@@ -133,6 +133,8 @@
   <ItemGroup>
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
+    <ClCompile Include="Components\EnemyController.cpp" />
+    <ClCompile Include="Components\EnemySpawner.cpp" />
     <ClCompile Include="FrameWork\Component.cpp" />
     <ClCompile Include="FrameWork\CollisionSystem.cpp" />
     <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
@@ -141,6 +143,7 @@
     <ClCompile Include="Core\main.cpp" />
     <ClCompile Include="Callbacks\StateCallbacks.cpp" />
     <ClCompile Include="States\AttackState.cpp" />
+    <ClCompile Include="States\EnemyState.cpp" />
     <ClCompile Include="States\LifeState.cpp" />
     <ClCompile Include="States\MovementState.cpp" />
     <ClCompile Include="Components\AttackController.cpp" />
@@ -157,6 +160,8 @@
   <ItemGroup>
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h" />
+    <ClInclude Include="Components\EnemyController.h" />
+    <ClInclude Include="Components\EnemySpawner.h" />
     <ClInclude Include="FrameWork\Component.h" />
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="Common\D3D11ResourceHandler.h" />
@@ -167,6 +172,7 @@
     <ClInclude Include="Callbacks\StateCallbacks.h" />
     <ClInclude Include="FrameWork\State.h" />
     <ClInclude Include="States\AttackState.h" />
+    <ClInclude Include="States\EnemyState.h" />
     <ClInclude Include="States\LifeState.h" />
     <ClInclude Include="States\MovementState.h" />
     <ClInclude Include="Components\AttackController.h" />
@@ -186,6 +192,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\chmov.png" />
+    <Image Include="assets\Enemy.png" />
     <Image Include="assets\gold.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

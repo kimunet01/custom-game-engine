@@ -19,6 +19,7 @@
 #include "Logger.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
+#include "EnemySpawner.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
 #include "SpriteAnimator.h"
@@ -65,6 +66,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     ctx->createWindow(hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
     ctx->createDeviceAndSwapChainAndRTV(videoConfig.Width, videoConfig.Height);
 
+    // 1. 플레이어 자원 설정
     Mesh playerMesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
     playerMesh.createVertexBuffer();
 
@@ -72,9 +74,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     ShaderSet textureShaders = ctx->CompileAndCreate(textureShaderPath, 0, true, textureIed, 2);
     TextureMaterial* playerMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
 
+    // 2. 적(Enemy) 자원 설정
+    // 적의 크기를 여기서 조절합니다 (예: 0.15f)
+    Mesh enemyMesh(CreateSpriteQuadMesh(0.08f, 0.08f, 0.0f, 0.0f, 1.0f, 1.0f));
+    enemyMesh.createVertexBuffer();
+    TextureMaterial* enemyMaterial = new TextureMaterial(textureShaders, L"assets\\Enemy.png");
+
     GameLoop loop;
     loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
+    // 충돌 반경을 0.06f로 줄여서 더 정밀한 충돌 판정을 적용합니다.
+    loop.collisionSystem.SetCollisionDistance(0.06f);
 
+    // 3. 플레이어 생성
     GameObject* player = new GameObject("Player");
     // State는 Component가 아닌 데이터 단위. GameObject의 states 컬렉션에 등록한다.
     // 콜백을 구독하는 PlayerControl/SpriteAnimator보다 먼저 등록되어야 Start() 시점에 GetState로 발견된다.
@@ -102,6 +113,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     player->AddComponent(animator);
     player->AddComponent(new MeshRenderer({ &playerMesh }, playerMaterial));
     loop.AddGameObject(player);
+
+    // 4. 에너미 스포너 생성
+    // 속도 인자를 추가로 전달합니다 (예: 0.04f)
+    GameObject* spawnerObj = new GameObject("EnemySpawner");
+    spawnerObj->AddComponent(new EnemySpawner(&loop, &enemyMesh, enemyMaterial, player, 0.04f));
+    loop.AddGameObject(spawnerObj);
 
     loop.Run();
 

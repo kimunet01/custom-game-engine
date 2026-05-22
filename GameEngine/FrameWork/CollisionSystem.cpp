@@ -242,14 +242,18 @@ void CollisionSystem::ResolveBounds(GameObject* object)
 
 void CollisionSystem::NotifyCollision(const CollisionPair& pair)
 {
-    // 현재 게임 규칙: Player와 Bullet이 충돌하면 lose!를 한 번 출력한다.
+    // 현재 게임 규칙: Player와 Bullet(또는 BlueSlime)이 충돌하면 lose!를 한 번 출력한다.
     // 더 많은 규칙이 생기면 이벤트/콜백 구조로 분리할 후보 지점이다.
     const bool firstIsPlayer = pair.first != nullptr && pair.first->name == "Player";
     const bool secondIsPlayer = pair.second != nullptr && pair.second->name == "Player";
-    const bool firstIsBullet = pair.first != nullptr && pair.first->name.find("Bullet") == 0;
-    const bool secondIsBullet = pair.second != nullptr && pair.second->name.find("Bullet") == 0;
+    
+    // Bullet 또는 Enemy 이름을 가진 오브젝트를 적으로 간주합니다.
+    const bool firstIsEnemy = pair.first != nullptr && 
+        (pair.first->name.find("Bullet") == 0 || pair.first->name.find("Enemy") == 0);
+    const bool secondIsEnemy = pair.second != nullptr && 
+        (pair.second->name.find("Bullet") == 0 || pair.second->name.find("Enemy") == 0);
 
-    if (!isLosePrinted && ((firstIsPlayer && secondIsBullet) || (secondIsPlayer && firstIsBullet))) {
+    if (!isLosePrinted && ((firstIsPlayer && secondIsEnemy) || (secondIsPlayer && firstIsEnemy))) {
         Logger::Info("lose!");
         isLosePrinted = true;
     }
