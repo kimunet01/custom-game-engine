@@ -133,8 +133,8 @@
   <ItemGroup>
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
-    <ClCompile Include="Components\EnemyController.cpp" />
-    <ClCompile Include="Components\EnemySpawner.cpp" />
+    <ClCompile Include="Components\EnvironmentRenderer.cpp" />
+    <ClCompile Include="Components\TerrainStateController.cpp" />
     <ClCompile Include="FrameWork\Component.cpp" />
     <ClCompile Include="FrameWork\CollisionSystem.cpp" />
     <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
@@ -143,7 +143,6 @@
     <ClCompile Include="Core\main.cpp" />
     <ClCompile Include="Callbacks\StateCallbacks.cpp" />
     <ClCompile Include="States\AttackState.cpp" />
-    <ClCompile Include="States\EnemyState.cpp" />
     <ClCompile Include="States\LifeState.cpp" />
     <ClCompile Include="States\MovementState.cpp" />
     <ClCompile Include="Components\AttackController.cpp" />
@@ -156,12 +155,12 @@
     <ClCompile Include="Common\Resources\Material.cpp" />
     <ClCompile Include="Common\Resources\ShaderSet.cpp" />
     <ClCompile Include="Common\Logger.cpp" />
+    <ClCompile Include="FrameWork\LevelLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h" />
-    <ClInclude Include="Components\EnemyController.h" />
-    <ClInclude Include="Components\EnemySpawner.h" />
+    <ClInclude Include="Components\EnvironmentRenderer.h" />
     <ClInclude Include="FrameWork\Component.h" />
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="Common\D3D11ResourceHandler.h" />
@@ -172,7 +171,6 @@
     <ClInclude Include="Callbacks\StateCallbacks.h" />
     <ClInclude Include="FrameWork\State.h" />
     <ClInclude Include="States\AttackState.h" />
-    <ClInclude Include="States\EnemyState.h" />
     <ClInclude Include="States\LifeState.h" />
     <ClInclude Include="States\MovementState.h" />
     <ClInclude Include="Components\AttackController.h" />
@@ -185,16 +183,15 @@
     <ClInclude Include="Common\Resources\Material.h" />
     <ClInclude Include="Common\Resources\ShaderSet.h" />
     <ClInclude Include="Common\Logger.h" />
+    <ClInclude Include="FrameWork\LevelLayout.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl" />
     <None Include="Common\Resources\Shaders\TextureShader.hlsl" />
+    <None Include="Components\TerrainStateController.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\asset\Free-Top-Down-Orc-Game-Character-Pixel-Art\PNG\Orc1\Orc1_run\orc1_run_full.png" />
-    <Image Include="..\..\asset\Free-Top-Down-Orc-Game-Character-Pixel-Art\PNG\Orc2\Orc2_run\orc2_run_full.png" />
     <Image Include="assets\chmov.png" />
-    <Image Include="assets\Enemy.png" />
     <Image Include="assets\gold.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

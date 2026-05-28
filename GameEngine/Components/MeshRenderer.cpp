@@ -135,9 +135,10 @@ void MeshRenderer::Render()
         // Mesh의 vertex buffer를 input assembler에 연결
         pImmediateContext->IASetVertexBuffers(0, 1, &pMesh->pVertexBuffer, &stride, &offset);
         
-        // 상수 버퍼 바인딩: VS b0(행렬), PS b1(색상)
+        // 상수 버퍼 바인딩: VS b0(행렬), PS b2(색상)
+        // (PS b1은 EnvironmentBuffer가 사용하므로 b2로 옮김)
         pImmediateContext->VSSetConstantBuffers(0, 1, &pMatrixBuffer);
-        pImmediateContext->PSSetConstantBuffers(1, 1, &pColorBuffer);
+        pImmediateContext->PSSetConstantBuffers(2, 1, &pColorBuffer);
         
         pImmediateContext->Draw(static_cast<UINT>(pMesh->mesh.size()), 0);
     }

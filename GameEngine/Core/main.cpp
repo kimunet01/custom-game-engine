@@ -1,4 +1,4 @@
-﻿/*
+/*
  * main.cpp
  * Entry point and sample scene assembly.
  */
@@ -20,10 +20,14 @@
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
 #include "EnemySpawner.h"
+#include "LevelLayout.h"        
+#include "EnvironmentRenderer.h"    
+#include "TerrainStateController.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
 #include "SpriteAnimator.h"
 #include "VelocityController.h"
+
 #include "Win32Handler.h"
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
@@ -82,9 +86,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     TextureMaterial* enemyMaterialOrc2 = new TextureMaterial(textureShaders, L"assets\\orc2_run_full.png");
 
     GameLoop loop;
-    loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
-    // 충돌 반경을 0.06f로 줄여서 더 정밀한 충돌 판정을 적용합니다.
+    // 맵 경계 설정 (팀원들의 최신 경계 값 반영 및 제 충돌 설정 유지)
+    loop.collisionSystem.SetBounds(-0.85f, 0.87f, -0.86f, 0.65f);
     loop.collisionSystem.SetCollisionDistance(0.06f);
+
+    // [Upstream] 맵 및 배경 렌더링 설정
+    TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
+    GameObject* stageTerrain = new GameObject("StageTerrain");
+    stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
+    stageTerrain->AddComponent(new LevelLayout());
+    Mesh* floorMesh = new Mesh(CreateSpriteQuadMesh(3.12f, 2.925f, 0.0f, 0.0f, 1.0f, 1.0f));
+    floorMesh->createVertexBuffer();
+    EnvironmentRenderer* envRenderer = new EnvironmentRenderer(floorMesh, dungeonMaterial);
+    stageTerrain->AddComponent(envRenderer);
+    stageTerrain->AddComponent(new TerrainStateController());
+    loop.AddGameObject(stageTerrain);
 
     // 3. 플레이어 생성
     GameObject* player = new GameObject("Player");
