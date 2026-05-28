@@ -25,6 +25,10 @@ public:
     Material* pMaterial;
     // 오브젝트별 world/view/projection 행렬을 Vertex Shader에 전달하는 상수 버퍼.
     ID3D11Buffer* pMatrixBuffer;
+    // 오브젝트별 색상(tint)을 Pixel Shader에 전달하는 상수 버퍼.
+    ID3D11Buffer* pColorBuffer;
+    // 렌더링 시 적용할 색상 틴트 (기본값: 흰색)
+    DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     explicit MeshRenderer(std::vector<Mesh*> meshes, Material* mat);
     // 렌더러가 사용할 행렬 상수 버퍼를 GPU에 생성한다.

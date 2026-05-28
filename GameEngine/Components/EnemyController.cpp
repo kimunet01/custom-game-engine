@@ -3,6 +3,7 @@
 #include "Logger.h"
 #include "StateCallbacks.h"
 #include "SpriteAnimator.h"
+#include "MeshRenderer.h"
 #include "EnemySpawner.h"
 #include <cmath>
 
@@ -19,6 +20,17 @@ void EnemyController::Reset()
     isAttackLocked = false;
     attackTimer = 0.0f;
     deathTimer = 0.0f;
+    hasDashed = false;
+    dashTimer = 0.0f;
+
+    // 풀링 재사용 시 비주얼 상태 초기화
+    if (pOwner) {
+        MeshRenderer* renderer = pOwner->GetComponent<MeshRenderer>();
+        if (renderer) renderer->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+        SpriteAnimator* animator = pOwner->GetComponent<SpriteAnimator>();
+        if (animator) animator->isPaused = false;
+    }
 }
 
 void EnemyController::Start()
@@ -77,6 +89,65 @@ void EnemyController::Update(float dt)
         return;
     }
 
+    // --- 대쉬 스킬 처리 ---
+    EnemyStateType currentState = pEnemyState->Get();
+    
+    if (currentState == EnemyStateType::DashPrep) {
+        pOwner->velocity = { 0, 0, 0 }; // 0.5초 정지
+        dashTimer += dt;
+
+        // 1. 애니메이션 일시 정지 (기존 방향 유지)
+        SpriteAnimator* animator = pOwner->GetComponent<SpriteAnimator>();
+        if (animator) animator->isPaused = true;
+
+        // 2. 색상 연출 (연한 노랑 -> 진한 노랑)
+        MeshRenderer* renderer = pOwner->GetComponent<MeshRenderer>();
+        if (renderer) {
+            float progress = dashTimer / dashPrepTime;
+            if (progress > 1.0f) progress = 1.0f;
+            
+            // White(1,1,1) -> Yellow(1,1,0)
+            renderer->color.x = 1.0f;
+            renderer->color.y = 1.0f;
+            renderer->color.z = 1.0f - progress;
+            renderer->color.w = 1.0f;
+        }
+
+        if (dashTimer >= dashPrepTime) {
+            // 애니메이션 재개 및 색상 원복
+            if (animator) animator->isPaused = false;
+            if (renderer) renderer->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+            // 플레이어 방향 벡터 고정 및 Dashing 상태 진입
+            float dx = pTarget->position.x - pOwner->position.x;
+            float dy = pTarget->position.y - pOwner->position.y;
+            float distance = std::sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0.001f) {
+                dashDirX = dx / distance;
+                dashDirY = dy / distance;
+            } else {
+                dashDirX = 1.0f; dashDirY = 0.0f;
+            }
+            dashTimer = 0.0f;
+            pEnemyState->SetMove(EnemyStateType::Dashing);
+        }
+        return;
+    }
+    
+    if (currentState == EnemyStateType::Dashing) {
+        pOwner->velocity.x = dashDirX * dashSpeed;
+        pOwner->velocity.y = dashDirY * dashSpeed;
+        dashTimer += dt;
+        
+        if (dashTimer >= dashDuration) {
+            // 대쉬 종료 -> 기본 추적 상태 복귀
+            hasDashed = true;
+            pEnemyState->SetMove(EnemyStateType::MoveDown);
+        }
+        return;
+    }
+
     if (isMovementLocked) {
         pOwner->velocity = { 0, 0, 0 };
         return;
@@ -86,12 +157,29 @@ void EnemyController::Update(float dt)
     float dx = pTarget->position.x - pOwner->position.x;
     float dy = pTarget->position.y - pOwner->position.y;
     float distance = std::sqrt(dx * dx + dy * dy);
+
+    // 대쉬 발동 조건 검사 (Orc2 타입 && 거리 내 진입 && 안 씀)
+    if (enemyType == 1 && !hasDashed && distance < dashRange) {
+        dashTimer = 0.0f;
+        pEnemyState->SetMove(EnemyStateType::DashPrep);
+        return;
+    }
+
 // 거리와 상관없이 항상 플레이어를 향해 이동
 if (distance > 0.001f) {
-    pEnemyState->SetMove();
     float invDist = 1.0f / distance;
     pOwner->velocity.x = (dx * invDist) * speed;
     pOwner->velocity.y = (dy * invDist) * speed;
+
+    // 속도 방향에 따라 상태 결정
+    if (std::abs(pOwner->velocity.x) > std::abs(pOwner->velocity.y)) {
+        if (pOwner->velocity.x > 0) pEnemyState->SetMove(EnemyStateType::MoveRight);
+        else pEnemyState->SetMove(EnemyStateType::MoveLeft);
+    }
+    else {
+        if (pOwner->velocity.y > 0) pEnemyState->SetMove(EnemyStateType::MoveUp);
+        else pEnemyState->SetMove(EnemyStateType::MoveDown);
+    }
 }
 else {
     pOwner->velocity = { 0, 0, 0 };

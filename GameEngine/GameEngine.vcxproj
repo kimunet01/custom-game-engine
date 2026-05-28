@@ -191,6 +191,8 @@
     <None Include="Common\Resources\Shaders\TextureShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\asset\Free-Top-Down-Orc-Game-Character-Pixel-Art\PNG\Orc1\Orc1_run\orc1_run_full.png" />
+    <Image Include="..\..\asset\Free-Top-Down-Orc-Game-Character-Pixel-Art\PNG\Orc2\Orc2_run\orc2_run_full.png" />
     <Image Include="assets\chmov.png" />
     <Image Include="assets\Enemy.png" />
     <Image Include="assets\gold.bmp" />

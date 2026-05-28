@@ -11,7 +11,12 @@
 
 enum class EnemyStateType
 {
-    Move,
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
+    DashPrep, // 대쉬 전 0.5초 멈춤
+    Dashing,  // 대쉬 돌진 중
     Dead,
     Disabled // 풀에 들어가 있는 상태
 };
@@ -21,7 +26,7 @@ class EnemyState : public ObservableState<EnemyStateType>
 public:
     EnemyState();
 
-    void SetMove();
+    void SetMove(EnemyStateType direction);
     void SetDead();
     void SetDisabled();
 

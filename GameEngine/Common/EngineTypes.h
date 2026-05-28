@@ -52,6 +52,12 @@ struct MatrixBufferType {
     DirectX::XMMATRIX projectionMatrix;
 };
 
+// MeshRenderer가 Pixel Shader에 전달하는 색상 상수 버퍼 구조.
+// HLSL의 cbuffer ColorBuffer와 메모리 배치가 맞아야 한다.
+struct ColorBufferType {
+    DirectX::XMFLOAT4 tintColor;
+};
+
 // 창 크기, 전체화면 여부, 리사이즈 요청 등 비디오 출력 설정을 보관한다.
 struct VideoConfig{
     // Win32 창과 DirectX swap chain/back buffer가 공유하는 화면 크기.

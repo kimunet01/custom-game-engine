@@ -208,5 +208,11 @@
     <Image Include="assets\Enemy.png">
       <Filter>assets</Filter>
     </Image>
+    <Image Include="..\..\asset\Free-Top-Down-Orc-Game-Character-Pixel-Art\PNG\Orc1\Orc1_run\orc1_run_full.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="..\..\asset\Free-Top-Down-Orc-Game-Character-Pixel-Art\PNG\Orc2\Orc2_run\orc2_run_full.png">
+      <Filter>assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>

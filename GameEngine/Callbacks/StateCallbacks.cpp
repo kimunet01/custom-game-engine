@@ -111,6 +111,11 @@ namespace StateCallbacks
                      EnemyState::ToString(prev), EnemyState::ToString(next));
         
         if (self == nullptr || self->pOwner == nullptr) return;
+        
+        // DashPrep 상태일 때는 기존 스프라이트(방향)를 유지하기 위해 클립을 바꾸지 않음.
+        // 대신 EnemyController에서 animator->isPaused = true 처리를 함.
+        if (next == EnemyStateType::DashPrep) return;
+
         self->SwitchToClip(EnemyState::ToString(next));
     }
 
@@ -121,7 +126,14 @@ namespace StateCallbacks
         if (self == nullptr) return;
 
         // Move 이외의 상태(Dead, Disabled)에서는 움직임을 잠금
-        self->isMovementLocked = (next != EnemyStateType::Move);
+        bool isMoving = (next == EnemyStateType::MoveLeft || next == EnemyStateType::MoveRight ||
+                         next == EnemyStateType::MoveUp   || next == EnemyStateType::MoveDown ||
+                         next == EnemyStateType::Dashing);
+        
+        // DashPrep 상태도 타이머 업데이트가 필요하므로 완전히 잠그지 않음 (내부에서 velocity=0 처리)
+        bool isDashPrep = (next == EnemyStateType::DashPrep);
+
+        self->isMovementLocked = !(isMoving || isDashPrep);
     }
 
     void ReevaluateEnemyAnimClip(SpriteAnimator* self)

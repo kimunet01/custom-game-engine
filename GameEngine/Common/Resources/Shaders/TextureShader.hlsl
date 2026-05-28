@@ -5,6 +5,11 @@ cbuffer MatrixBuffer : register(b0)
     matrix projectionMatrix;
 }
 
+cbuffer ColorBuffer : register(b1)
+{
+    float4 tintColor;
+}
+
 Texture2D diffuseTexture : register(t0);
 SamplerState diffuseSampler : register(s0);
 
@@ -30,5 +35,5 @@ PS_INPUT VS(VS_INPUT input)
 
 float4 PS(PS_INPUT input) : SV_Target
 {
-    return diffuseTexture.Sample(diffuseSampler, input.uv);
+    return diffuseTexture.Sample(diffuseSampler, input.uv) * tintColor;
 }

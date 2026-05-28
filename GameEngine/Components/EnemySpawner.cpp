@@ -12,25 +12,24 @@
 #include "VelocityController.h"
 #include "Resources/Mesh.h"
 
-EnemySpawner::EnemySpawner(GameLoop* loop, Mesh* mesh, Material* material, GameObject* player, float speed)
-    : pLoop(loop), pEnemyMesh(mesh), pEnemyMaterial(material), pPlayer(player), enemySpeed(speed)
+EnemySpawner::EnemySpawner(GameLoop* loop, Mesh* mesh, Material* material, GameObject* player, float speed, int type)
+    : pLoop(loop), pEnemyMesh(mesh), pEnemyMaterial(material), pPlayer(player), enemySpeed(speed), enemyType(type)
 {
+}
+
+void EnemySpawner::Start()
+{
+    if (pOwner) {
+        // 스포너 자체도 Z축 뒤로 숨깁니다 (CollisionSystem의 방해 방지)
+        pOwner->position = { 0.0f, 0.0f, 10.0f };
+    }
+    isStarted = true;
 }
 
 void EnemySpawner::Update(float dt)
 {
     // [보호] 첫 프레임 폭주 방지: deltaTime이 너무 크면 업데이트를 건너뜜니다.
     if (dt > 0.5f) return;
-
-    // 첫 업데이트 시 미리 풀을 생성합니다.
-    if (!isInitialized) {
-        if (pOwner) {
-            // 스포너 자체도 Z축 뒤로 숨깁니다 (CollisionSystem의 방해 방지)
-            pOwner->position = { 0.0f, 0.0f, 10.0f };
-        }
-        PreAllocate(preAllocateCount);
-        isInitialized = true;
-    }
 
     timer += dt;
     if (timer >= interval) {
@@ -67,6 +66,14 @@ GameObject* EnemySpawner::CreateNewEnemyInstance()
     controller->SetTarget(pPlayer);
     controller->SetSpawner(this);
     controller->SetSpeed(enemySpeed);
+    
+    // 특수 스킬(Dash) 값들 주입
+    controller->enemyType = this->enemyType;
+    controller->dashRange = this->dashRange;
+    controller->dashPrepTime = this->dashPrepTime;
+    controller->dashSpeed = this->dashSpeed;
+    controller->dashDuration = this->dashDuration;
+    
     enemy->AddComponent(controller);
 
     enemy->AddComponent(new VelocityController());
@@ -75,10 +82,19 @@ GameObject* EnemySpawner::CreateNewEnemyInstance()
     enemyMesh->createVertexBuffer();
 
     SpriteAnimator* animator = new SpriteAnimator(enemyMesh);
-    // 현재 적에게 필요한 최소한의 클립 구성
-    animator->AddClip("move",     15, 12, 48, 3, 0.12f);
-    animator->AddClip("dead",     15, 12, 48, 1, 0.50f, false);
-    animator->AddClip("disabled", 15, 12, 48, 1, 1.0f);
+    // orc1_run_full.png 격자 구조: 8열 4행
+    // 사용자 지정 순서: Down(0행), Up(1행), Left(2행), Right(3행)
+    animator->AddClip("move_down",  8, 4, 0,  8, 0.10f);
+    animator->AddClip("move_up",    8, 4, 8,  8, 0.10f);
+    animator->AddClip("move_left",  8, 4, 16, 8, 0.10f);
+    animator->AddClip("move_right", 8, 4, 24, 8, 0.10f);
+    
+    // Dash 스킬용 클립 연동 (에셋에 별도 동작이 없으므로 기본 move_down 활용)
+    animator->AddClip("dash_prep",  8, 4, 0,  1, 0.10f); // 첫 프레임 정지
+    animator->AddClip("dashing",    8, 4, 0,  8, 0.05f); // 빠르게 재생
+    
+    animator->AddClip("dead",       8, 4, 0,  1, 0.50f, false);
+    animator->AddClip("disabled",   8, 4, 0,  1, 1.0f);
 
     enemy->AddComponent(animator);
     enemy->AddComponent(new MeshRenderer({ enemyMesh }, pEnemyMaterial));
@@ -115,7 +131,7 @@ void EnemySpawner::Spawn()
     if (controller) controller->Reset();
 
     EnemyState* state = enemy->GetState<EnemyState>();
-    if (state) state->SetMove(); // 소환 즉시 이동 상태로 시작
+    if (state) state->SetMove(EnemyStateType::MoveDown); // 소환 즉시 기본 방향(아래)으로 시작
 }
 
 void EnemySpawner::ReturnToPool(GameObject* enemy)
