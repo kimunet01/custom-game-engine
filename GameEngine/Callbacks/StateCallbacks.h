@@ -16,9 +16,11 @@
 #include "MovementState.h"
 #include "AttackState.h"
 #include "LifeState.h"
+#include "EnemyState.h"
 
 class SpriteAnimator;
 class PlayerControl;
+class EnemyController;
 
 namespace StateCallbacks
 {
@@ -35,4 +37,15 @@ namespace StateCallbacks
     // PlayerControl 측 반응: Update가 사용할 입력 잠금 플래그를 갱신한다.
     void OnControlLife  (PlayerControl* self, LifeStateType   prev, LifeStateType   next);
     void OnControlAttack(PlayerControl* self, AttackStateType prev, AttackStateType next);
+
+    // --- 적(Enemy) 관련 콜백 (5/29 추가) ---
+
+    // 적의 상태가 변경될 때 애니메이션을 업데이트합니다. (5/29 추가)
+    void OnAnimEnemy(SpriteAnimator* self, EnemyStateType prev, EnemyStateType next);
+
+    // 적의 상태가 변경될 때 이동 잠금 등 제어 플래그를 업데이트합니다. (5/29 추가)
+    void OnControlEnemy(EnemyController* self, EnemyStateType prev, EnemyStateType next);
+
+    // 적의 초기 애니메이션 상태를 설정합니다. (5/29 추가)
+    void ReevaluateEnemyAnimClip(SpriteAnimator* self);
 }

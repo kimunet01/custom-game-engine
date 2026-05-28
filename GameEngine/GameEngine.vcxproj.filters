@@ -77,6 +77,12 @@
     <ClCompile Include="Components\AttackController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\EnemyController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\EnemySpawner.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Components\DeathTimer.cpp">
       <Filter>Components</Filter>
     </ClCompile>
@@ -163,6 +169,9 @@
     <ClInclude Include="States\AttackState.h">
       <Filter>States</Filter>
     </ClInclude>
+    <ClInclude Include="States\EnemyState.h">
+      <Filter>States</Filter>
+    </ClInclude>
     <ClInclude Include="States\HealthState.h">
       <Filter>States</Filter>
     </ClInclude>
@@ -247,6 +256,12 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\chmov.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="assets\orc1_run_full.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="assets\orc2_run_full.png">
       <Filter>assets</Filter>
     </Image>
     <Image Include="assets\Dungeon2.png">
