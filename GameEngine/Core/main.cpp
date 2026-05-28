@@ -1,6 +1,13 @@
-﻿/*
+/*
  * main.cpp
  * Entry point and sample scene assembly.
+ *
+ * Player + Enemy + Boss를 배치한다.
+ * - 각 캐릭터는 별도 Mesh 인스턴스를 가진다. (SpriteAnimator가 mesh vertex buffer를 매 프레임 수정하므로
+ *   Mesh를 공유하면 UV 충돌이 발생함.) Material(텍스처/셰이더)은 공유 가능.
+ * - 등록 순서: AddState 전부 → HealthController/AttackController/PlayerControl/VelocityController
+ *   → SpriteAnimator → HitReactionController → DeathTimer → MeshRenderer
+ *   (콜백 구독자(Controller)가 Start될 때 GetState로 찾을 수 있어야 하므로 State 우선)
  */
 
 #include <windows.h>
@@ -11,13 +18,17 @@
 #include "D3D11ResourceHandler.h"
 #include "AttackController.h"
 #include "AttackState.h"
-#include "MovementState.h"
+#include "DeathTimer.h"
 #include "EngineTypes.h"
 #include "GameLoop.h"
 #include "GameObject.h"
+#include "HealthController.h"
+#include "HealthState.h"
+#include "HitReactionController.h"
 #include "LifeState.h"
 #include "Logger.h"
 #include "MeshRenderer.h"
+#include "MovementState.h"
 #include "PlayerControl.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
@@ -49,6 +60,25 @@ std::vector<Vertex> CreateSpriteQuadMesh(float width, float height, float u0, fl
         { -halfWidth, -halfHeight, 0.5f, u0, v1 }
     };
 }
+
+// 캐릭터 한 마리에 필요한 모든 클립을 등록한다.
+// 모든 캐릭터(Player/Enemy/Boss)가 같은 텍스처 아틀라스를 쓰므로 동일한 클립 정의를 공유한다.
+void AddAllCharacterClips(SpriteAnimator* animator)
+{
+    animator->AddClip("stand_left",  10, 10,  0, 1, 0.12f, false);
+    animator->AddClip("stand_right", 10, 10, 10, 1, 0.12f, false);
+    animator->AddClip("stand_up",    10, 10, 20, 1, 0.12f, false);
+    animator->AddClip("stand_down",  10, 10, 30, 1, 0.12f, false);
+    animator->AddClip("walk_left",   10, 10,  0, 8, 0.10f);
+    animator->AddClip("walk_right",  10, 10, 10, 8, 0.10f);
+    animator->AddClip("walk_up",     10, 10, 20, 8, 0.10f);
+    animator->AddClip("walk_down",   10, 10, 30, 8, 0.10f);
+    animator->AddClip("sword_attack_down",  10, 10, 40, 5, 0.08f, false);
+    animator->AddClip("sword_attack_up",    10, 10, 50, 5, 0.08f, false);
+    animator->AddClip("sword_attack_right", 10, 10, 60, 6, 0.08f, false);
+    animator->AddClip("sword_attack_left",  10, 10, 70, 6, 0.08f, false);
+    animator->AddClip("dead", 10, 10, 81, 1, 0.12f, false);
+}
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
@@ -65,47 +95,109 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     ctx->createWindow(hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
     ctx->createDeviceAndSwapChainAndRTV(videoConfig.Width, videoConfig.Height);
 
-    Mesh playerMesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
-    playerMesh.createVertexBuffer();
-
+    // ── 공유 자원: 텍스처/셰이더 머티리얼은 한 번만 생성해 모든 캐릭터가 공유한다.
+    // ── 단, Mesh는 SpriteAnimator가 vertex buffer를 수정하므로 캐릭터마다 별도로 만든다.
     const wchar_t* textureShaderPath = L"Common\\Resources\\Shaders\\TextureShader.hlsl";
     ShaderSet textureShaders = ctx->CompileAndCreate(textureShaderPath, 0, true, textureIed, 2);
-    TextureMaterial* playerMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
+    TextureMaterial* sharedMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
+
+    Mesh* playerMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
+    playerMesh->createVertexBuffer();
+
+    Mesh* enemyMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
+    enemyMesh->createVertexBuffer();
+
+    Mesh* bossMesh = new Mesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
+    bossMesh->createVertexBuffer();
 
     GameLoop loop;
     loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
 
+    // ─────────────────────────────────────────────────────────
+    // Player
+    // ─────────────────────────────────────────────────────────
     GameObject* player = new GameObject("Player");
-    // State는 Component가 아닌 데이터 단위. GameObject의 states 컬렉션에 등록한다.
-    // 콜백을 구독하는 PlayerControl/SpriteAnimator보다 먼저 등록되어야 Start() 시점에 GetState로 발견된다.
+    player->teamId = TeamId::Player;
+    player->collisionRadius = 0.09f;
+    // States (모두 먼저 등록되어야 Component Start에서 GetState로 찾을 수 있음).
     player->AddState(new AttackState());
     player->AddState(new LifeState());
     player->AddState(new MovementState());
-    // AttackController는 AttackState를 조작하므로 State보다 뒤, 그리고 자신을 참조하는 PlayerControl보다 앞에 등록한다.
-    player->AddComponent(new AttackController());
+    player->AddState(new HealthState(3));
+    // Controllers.
+    AttackController* playerAttack = new AttackController();
+    playerAttack->SetCombatSystem(&loop.combatSystem);
+    playerAttack->SetSwordDamage(1);
+    player->AddComponent(playerAttack);
+    player->AddComponent(new HealthController());
     player->AddComponent(new PlayerControl(0));
     player->AddComponent(new VelocityController());
-    SpriteAnimator* animator = new SpriteAnimator(&playerMesh);
-    animator->AddClip("stand_left", 10, 10, 0, 1, 0.12f, false);
-    animator->AddClip("stand_right", 10, 10, 10, 1, 0.12f, false);
-    animator->AddClip("stand_up", 10, 10, 20, 1, 0.12f, false);
-    animator->AddClip("stand_down", 10, 10, 30, 1, 0.12f, false);
-    animator->AddClip("walk_left", 10, 10, 0, 8, 0.10f);
-    animator->AddClip("walk_right", 10, 10, 10, 8, 0.10f);
-    animator->AddClip("walk_up", 10, 10, 20, 8, 0.10f);
-    animator->AddClip("walk_down", 10, 10, 30, 8, 0.10f);
-    animator->AddClip("sword_attack_down", 10, 10, 40, 5, 0.08f, false);
-    animator->AddClip("sword_attack_up", 10, 10, 50, 5, 0.08f, false);
-    animator->AddClip("sword_attack_right", 10, 10, 60, 6, 0.08f, false);
-    animator->AddClip("sword_attack_left", 10, 10, 70, 6, 0.08f, false);
-    animator->AddClip("dead", 10, 10, 81, 1, 0.12f, false);
-    player->AddComponent(animator);
-    player->AddComponent(new MeshRenderer({ &playerMesh }, playerMaterial));
+    // Visual / Reaction.
+    SpriteAnimator* playerAnim = new SpriteAnimator(playerMesh);
+    AddAllCharacterClips(playerAnim);
+    player->AddComponent(playerAnim);
+    player->AddComponent(new HitReactionController());
+    player->AddComponent(new DeathTimer());
+    player->AddComponent(new MeshRenderer({ playerMesh }, sharedMaterial));
     loop.AddGameObject(player);
+
+    // ─────────────────────────────────────────────────────────
+    // Enemy (작은 적, HP=2)
+    // ─────────────────────────────────────────────────────────
+    GameObject* enemy = new GameObject("Enemy");
+    enemy->teamId = TeamId::Enemy;
+    enemy->collisionRadius = 0.09f;
+    enemy->position.x = 0.3f;
+    enemy->position.y = 0.0f;
+    enemy->AddState(new AttackState());
+    enemy->AddState(new LifeState());
+    enemy->AddState(new MovementState());
+    enemy->AddState(new HealthState(2));
+    enemy->AddComponent(new AttackController()); // 적은 능동 공격 안 함 (CombatSystem 미주입)
+    enemy->AddComponent(new HealthController());
+    enemy->AddComponent(new VelocityController());
+    SpriteAnimator* enemyAnim = new SpriteAnimator(enemyMesh);
+    AddAllCharacterClips(enemyAnim);
+    enemy->AddComponent(enemyAnim);
+    enemy->AddComponent(new HitReactionController());
+    enemy->AddComponent(new DeathTimer());
+    enemy->AddComponent(new MeshRenderer({ enemyMesh }, sharedMaterial));
+    loop.AddGameObject(enemy);
+
+    // ─────────────────────────────────────────────────────────
+    // Boss (Player와 같은 텍스처, 2배 크기, HP=8)
+    // ─────────────────────────────────────────────────────────
+    GameObject* boss = new GameObject("Boss");
+    boss->teamId = TeamId::Enemy;
+    boss->collisionRadius = 0.18f; // scale 2배에 비례
+    boss->position.x = -0.5f;
+    boss->position.y = 0.2f;
+    boss->scale.x = 2.0f;
+    boss->scale.y = 2.0f;
+    boss->scale.z = 1.0f;
+    boss->AddState(new AttackState());
+    boss->AddState(new LifeState());
+    boss->AddState(new MovementState());
+    boss->AddState(new HealthState(8));
+    boss->AddComponent(new AttackController());
+    boss->AddComponent(new HealthController());
+    boss->AddComponent(new VelocityController());
+    SpriteAnimator* bossAnim = new SpriteAnimator(bossMesh);
+    AddAllCharacterClips(bossAnim);
+    boss->AddComponent(bossAnim);
+    boss->AddComponent(new HitReactionController());
+    boss->AddComponent(new DeathTimer());
+    boss->AddComponent(new MeshRenderer({ bossMesh }, sharedMaterial));
+    loop.AddGameObject(boss);
 
     loop.Run();
 
     Logger::Info("Application shutting down");
+    // 공유 자원과 Mesh 인스턴스 정리. (GameLoop는 GameObject만 소유, Mesh/Material은 main이 소유.)
+    delete sharedMaterial;
+    delete playerMesh;
+    delete enemyMesh;
+    delete bossMesh;
     ctx->CleanUp();
     return 0;
 }

@@ -42,6 +42,9 @@
     <ClCompile Include="FrameWork\CollisionSystem.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
+    <ClCompile Include="FrameWork\CombatSystem.cpp">
+      <Filter>FrameWork</Filter>
+    </ClCompile>
     <ClCompile Include="FrameWork\GameObject.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
@@ -55,6 +58,15 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Components\AttackController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\DeathTimer.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\HealthController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\HitReactionController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="Components\MeshRenderer.cpp">
@@ -73,6 +85,9 @@
       <Filter>Callbacks</Filter>
     </ClCompile>
     <ClCompile Include="States\AttackState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <ClCompile Include="States\HealthState.cpp">
       <Filter>States</Filter>
     </ClCompile>
     <ClCompile Include="States\LifeState.cpp">
@@ -122,6 +137,9 @@
     <ClInclude Include="FrameWork\CollisionSystem.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
+    <ClInclude Include="FrameWork\CombatSystem.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
     <ClInclude Include="FrameWork\GameObject.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
@@ -132,6 +150,15 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Components\AttackController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\DeathTimer.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\HealthController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\HitReactionController.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\MeshRenderer.h">
@@ -147,6 +174,9 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="States\AttackState.h">
+      <Filter>States</Filter>
+    </ClInclude>
+    <ClInclude Include="States\HealthState.h">
       <Filter>States</Filter>
     </ClInclude>
     <ClInclude Include="States\LifeState.h">

@@ -17,8 +17,14 @@
 MeshRenderer::MeshRenderer(std::vector<Mesh*> meshes, Material* mat)
     : meshes(std::move(meshes))
     , pMatrixBuffer(nullptr)
+    , pTintBuffer(nullptr)
     , pMaterial(mat)
 {
+    // 기본 tint는 (1,1,1,1)로 텍스처 색상을 그대로 출력.
+    tint.x = 1.0f;
+    tint.y = 1.0f;
+    tint.z = 1.0f;
+    tint.w = 1.0f;
     Logger::Info("MeshRenderer created. meshCount=%zu hasMaterial=%d", this->meshes.size(), pMaterial != nullptr);
 }
 
@@ -66,6 +72,24 @@ void MeshRenderer::Start()
         return;
     }
 
+    // tint buffer: HLSL의 cbuffer TintBuffer(b1)와 정렬을 맞추기 위해 16바이트짜리 float4를 사용한다.
+    // 시맨틱은 (r,g,b,a). 최초 (1,1,1,1)로 텍스처 색상을 그대로 출력한다.
+    struct TintBufferType { float r, g, b, a; };
+    D3D11_BUFFER_DESC tintBufferDesc = {};
+    tintBufferDesc.ByteWidth = sizeof(TintBufferType);
+    tintBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    tintBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+    TintBufferType initialTint = { tint.x, tint.y, tint.z, tint.w };
+    D3D11_SUBRESOURCE_DATA tintInitData = {};
+    tintInitData.pSysMem = &initialTint;
+
+    const HRESULT tintHr = pd3dDevice->CreateBuffer(&tintBufferDesc, &tintInitData, &pTintBuffer);
+    if (FAILED(tintHr) || pTintBuffer == nullptr) {
+        Logger::Error("MeshRenderer failed to create tint buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(tintHr));
+        return;
+    }
+
     isStarted = true;
     Logger::Info("MeshRenderer started. owner=%s meshCount=%zu", pOwner->name.c_str(), meshes.size());
 }
@@ -86,15 +110,17 @@ void MeshRenderer::Render()
         return;
     }
 
-    // 현재 GameObject의 회전과 위치를 world matrix로 변환한다.
-    // 지금 구조에서는 scale이 없으므로 rotation과 translation만 적용한다.
+    // 현재 GameObject의 scale, rotation, position을 world matrix로 합성한다.
+    // renderOffset은 피격 흔들림 같은 시각 전용 오프셋으로, 게임 로직 좌표를 오염시키지 않기 위해
+    // translation 단계에서만 position에 더해 사용한다.
     MatrixBufferType matrixData = {};
     matrixData.worldMatrix =
+        DirectX::XMMatrixScaling(pOwner->scale.x, pOwner->scale.y, pOwner->scale.z) *
         DirectX::XMMatrixRotationZ(pOwner->rotation) *
         DirectX::XMMatrixTranslation(
-            pOwner->position.x,
-            pOwner->position.y,
-            pOwner->position.z
+            pOwner->position.x + pOwner->renderOffset.x,
+            pOwner->position.y + pOwner->renderOffset.y,
+            pOwner->position.z + pOwner->renderOffset.z
         );
     matrixData.viewMatrix = DirectX::XMMatrixIdentity();
     matrixData.projectionMatrix = DirectX::XMMatrixIdentity();
@@ -109,6 +135,13 @@ void MeshRenderer::Render()
         0
     );
 
+    // 매 프레임 tint도 갱신한다. HitReactionController가 SetTint로 값을 바꿔두면 다음 Render에 반영된다.
+    if (pTintBuffer != nullptr) {
+        struct TintBufferType { float r, g, b, a; };
+        TintBufferType tintData = { tint.x, tint.y, tint.z, tint.w };
+        pImmediateContext->UpdateSubresource(pTintBuffer, 0, nullptr, &tintData, 0, 0);
+    }
+
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
 
@@ -117,18 +150,32 @@ void MeshRenderer::Render()
             continue;
         }
 
-        // Mesh의 vertex buffer를 input assembler에 연결하고, 행렬 버퍼를 VS b0 슬롯에 연결한다.
+        // Mesh의 vertex buffer를 input assembler에 연결하고, 행렬/틴트 버퍼를 셰이더 슬롯에 연결한다.
         pImmediateContext->IASetVertexBuffers(0, 1, &pMesh->pVertexBuffer, &stride, &offset);
         pImmediateContext->VSSetConstantBuffers(0, 1, &pMatrixBuffer);
+        if (pTintBuffer != nullptr) {
+            pImmediateContext->PSSetConstantBuffers(1, 1, &pTintBuffer);
+        }
         pImmediateContext->Draw(static_cast<UINT>(pMesh->mesh.size()), 0);
     }
 }
 
+void MeshRenderer::SetTint(float r, float g, float b, float a)
+{
+    tint.x = r;
+    tint.y = g;
+    tint.z = b;
+    tint.w = a;
+}
+
 
 MeshRenderer::~MeshRenderer() {
-    // pMatrixBuffer는 MeshRenderer가 직접 만든 COM 객체이므로 여기서 Release한다.
+    // pMatrixBuffer/pTintBuffer는 MeshRenderer가 직접 만든 COM 객체이므로 여기서 Release한다.
     if (pMatrixBuffer != nullptr) {
         pMatrixBuffer->Release();
+    }
+    if (pTintBuffer != nullptr) {
+        pTintBuffer->Release();
     }
     Logger::Info("MeshRenderer destroyed");
 }

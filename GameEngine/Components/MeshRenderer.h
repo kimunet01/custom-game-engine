@@ -25,12 +25,20 @@ public:
     Material* pMaterial;
     // 오브젝트별 world/view/projection 행렬을 Vertex Shader에 전달하는 상수 버퍼.
     ID3D11Buffer* pMatrixBuffer;
+    // per-instance tint(r,g,b,a)를 Pixel Shader b1 슬롯에 전달하는 상수 버퍼.
+    // Material(텍스처/셰이더)은 인스턴스 사이 공유될 수 있어야 하므로 tint는 MeshRenderer 측에 둔다.
+    ID3D11Buffer* pTintBuffer;
+    // 현재 인스턴스의 tint 값. HitReactionController 같은 외부 컴포넌트가 SetTint로 수정한다.
+    // 기본 (1,1,1,1)은 텍스처 색상 그대로를 의미한다.
+    Vec4 tint;
 
     explicit MeshRenderer(std::vector<Mesh*> meshes, Material* mat);
-    // 렌더러가 사용할 행렬 상수 버퍼를 GPU에 생성한다.
+    // 렌더러가 사용할 행렬/tint 상수 버퍼를 GPU에 생성한다.
     void Start() override;
     // Material을 바인딩하고 Mesh별 vertex buffer를 그린다.
     void Render() override;
-    // 이 컴포넌트가 생성한 행렬 상수 버퍼를 해제한다.
+    // 외부에서 tint를 설정한다. 값은 다음 Render에서 GPU에 반영된다.
+    void SetTint(float r, float g, float b, float a);
+    // 이 컴포넌트가 생성한 상수 버퍼들을 해제한다.
     ~MeshRenderer();
 };

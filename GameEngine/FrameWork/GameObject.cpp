@@ -10,10 +10,19 @@
  */
 
 GameObject::GameObject(const std::string& n)
-    : name(n), parentObject(nullptr), rotation(0.0f), isCollided(false) {
+    : name(n), parentObject(nullptr), rotation(0.0f), isCollided(false),
+      teamId(TeamId::Neutral), collisionRadius(0.1f), pendingDestroy(false) {
     velocity.x = 0.f;
     velocity.y = 0.f;
     velocity.z = 0.f;
+    // scale 기본값은 1로 두어 시각적 크기 변화 없이 동작하도록 한다.
+    scale.x = 1.0f;
+    scale.y = 1.0f;
+    scale.z = 1.0f;
+    // renderOffset 기본값은 0. 피격 같은 일시 이펙트만 값을 채웠다가 복원한다.
+    renderOffset.x = 0.0f;
+    renderOffset.y = 0.0f;
+    renderOffset.z = 0.0f;
     Logger::Info("GameObject created. name=%s", name.c_str());
 }
 

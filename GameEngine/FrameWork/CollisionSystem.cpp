@@ -106,7 +106,10 @@ std::vector<CollisionPair> CollisionSystem::Detect(const std::vector<GameObject*
                 continue;
             }
 
-            if (IsColliding(first, second, collisionDistance)) {
+            // 오브젝트별 collisionRadius 합으로 충돌 판정한다.
+            // 보스처럼 큰 오브젝트는 더 큰 radius를 가지므로 글로벌 collisionDistance만으로는 정확하지 않다.
+            const float combinedRadius = first->collisionRadius + second->collisionRadius;
+            if (IsColliding(first, second, combinedRadius)) {
                 first->isCollided = true;
                 second->isCollided = true;
                 collisionPairs.push_back({ first, second });

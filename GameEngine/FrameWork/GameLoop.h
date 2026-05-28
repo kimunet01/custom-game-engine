@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "CollisionSystem.h"
+#include "CombatSystem.h"
 #include "D3D11ResourceHandler.h"
 #include "EngineTypes.h"
 #include "GameObject.h"
@@ -27,6 +28,8 @@ public:
     std::vector<GameObject*> gameWorld;
     // 모든 오브젝트의 충돌 검사, 충돌 반응, 경계 보정을 담당한다.
     CollisionSystem collisionSystem;
+    // 공격 hitbox 판정과 데미지 전달을 담당한다. AttackController가 RequestHit으로 큐를 채운다.
+    CombatSystem combatSystem;
     // deltaTime 계산을 위한 이전 프레임 시각.
     std::chrono::high_resolution_clock::time_point prevTime;
     // 직전 프레임에서 현재 프레임까지 흐른 시간.
