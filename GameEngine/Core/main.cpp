@@ -30,10 +30,14 @@
 #include "MeshRenderer.h"
 #include "MovementState.h"
 #include "PlayerControl.h"
+#include "LevelLayout.h"        
+#include "EnvironmentRenderer.h"    
+#include "TerrainStateController.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
 #include "SpriteAnimator.h"
 #include "VelocityController.h"
+
 #include "Win32Handler.h"
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
@@ -111,7 +115,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     bossMesh->createVertexBuffer();
 
     GameLoop loop;
-    loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
+    loop.collisionSystem.SetBounds(-0.85f, 0.87f, -0.86f, 0.65f);
+
+    TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
+    GameObject* stageTerrain = new GameObject("StageTerrain");
+    stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
+    stageTerrain->AddComponent(new LevelLayout());
+    Mesh* floorMesh = new Mesh(CreateSpriteQuadMesh(3.12f, 2.925f, 0.0f, 0.0f, 1.0f, 1.0f));
+    floorMesh->createVertexBuffer();
+    EnvironmentRenderer* envRenderer = new EnvironmentRenderer(floorMesh, dungeonMaterial);
+    stageTerrain->AddComponent(envRenderer);
+    stageTerrain->AddComponent(new TerrainStateController());
+    loop.AddGameObject(stageTerrain);
 
     // ─────────────────────────────────────────────────────────
     // Player
@@ -194,10 +209,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 
     Logger::Info("Application shutting down");
     // 공유 자원과 Mesh 인스턴스 정리. (GameLoop는 GameObject만 소유, Mesh/Material은 main이 소유.)
+    // 동료 작업분: dungeonMaterial / floorMesh는 StageTerrain에 사용되는 추가 자원.
     delete sharedMaterial;
+    delete dungeonMaterial;
     delete playerMesh;
     delete enemyMesh;
     delete bossMesh;
+    delete floorMesh;
     ctx->CleanUp();
     return 0;
 }

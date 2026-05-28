@@ -151,10 +151,12 @@ void MeshRenderer::Render()
         }
 
         // Mesh의 vertex buffer를 input assembler에 연결하고, 행렬/틴트 버퍼를 셰이더 슬롯에 연결한다.
+        // PS b1 슬롯은 EnvironmentRenderer가 stage-wide 효과(보스 톤/플래시)에 사용하므로 충돌을 피해
+        // tint는 PS b2 슬롯을 사용한다 (TextureShader.hlsl의 register(b2)와 일치).
         pImmediateContext->IASetVertexBuffers(0, 1, &pMesh->pVertexBuffer, &stride, &offset);
         pImmediateContext->VSSetConstantBuffers(0, 1, &pMatrixBuffer);
         if (pTintBuffer != nullptr) {
-            pImmediateContext->PSSetConstantBuffers(1, 1, &pTintBuffer);
+            pImmediateContext->PSSetConstantBuffers(2, 1, &pTintBuffer);
         }
         pImmediateContext->Draw(static_cast<UINT>(pMesh->mesh.size()), 0);
     }
