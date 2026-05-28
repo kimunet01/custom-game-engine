@@ -14,6 +14,7 @@
 
 class GameObject;
 class EnemySpawner;
+class LevelLayout;
 
 class EnemyController : public Component
 {
@@ -44,6 +45,7 @@ private:
     GameObject* pTarget = nullptr;
     EnemyState* pEnemyState = nullptr;
     EnemySpawner* pSpawner = nullptr;
+    LevelLayout* pLayout = nullptr;
 
     float speed = 0.03f;
     float attackRange = 0.05f;

@@ -137,24 +137,22 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     EnemySpawner* spawner1 = new EnemySpawner(&loop, &enemyMesh, enemyMaterial, player, 0.04f, 0);
     spawnerObj1->AddComponent(spawner1);
     loop.AddGameObject(spawnerObj1);
-    // [Crash 방지] 루프 시작 전 미리 풀을 생성합니다.
+    // 루프 시작 전 미리 풀을 생성합니다.
     spawner1->PreAllocate(30);
 
     // 5. 에너미 스포너 생성 (돌진형 - Orc2)
     GameObject* spawnerObj2 = new GameObject("EnemySpawner2");
     // 타입 1 (돌진형 탑재), 기본 속도는 조금 느린 0.03f
     EnemySpawner* dashSpawner = new EnemySpawner(&loop, &enemyMesh, enemyMaterialOrc2, player, 0.03f, 1);
-    
-    // [사용자 커스터마이징 영역]
-    // 엔진 좌표계(-1.0 ~ 1.0)에 맞게 환산된 수치입니다. 자유롭게 조절하세요.
-    dashSpawner->dashRange = 0.3f;     // 기획의 300.0f에 해당하는 화면 내 적정 거리 (화면의 약 절반)
-    dashSpawner->dashSpeed = 0.4f;    // 기획의 10.0f에 해당하는 빠른 속도
-    dashSpawner->dashPrepTime = 0.5f;  // 돌진 전 제자리 정지 시간 (0.5초)
+
+    dashSpawner->dashRange = 0.3f;     // 돌진 거리
+    dashSpawner->dashSpeed = 0.4f;    // 돌진 속도
+    dashSpawner->dashPrepTime = 0.5f;  // 돌진 전 제자리 정지 시간
     dashSpawner->dashDuration = 0.5f;  // 돌진이 유지되는 시간
     
     spawnerObj2->AddComponent(dashSpawner);
     loop.AddGameObject(spawnerObj2);
-    // [Crash 방지] 루프 시작 전 미리 풀을 생성합니다.
+    // 루프 시작 전 미리 풀을 생성합니다
     dashSpawner->PreAllocate(30);
 
     loop.Run();

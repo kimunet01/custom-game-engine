@@ -85,9 +85,10 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects)
         {
             if (obj != nullptr)
             {
-                // 플레이어나 몬스터처럼 벽에 부딪혀야 하는 움직이는 객체들을 대상으로 삼는다.
-    
-                if (obj->name == "Player1" || obj->name == "Player2" || obj->name == "Player" || obj->name == "Monster")
+                // [Gemini CLI 수정] 플레이어뿐만 아니라 "Enemy_"로 시작하는 모든 적들도 
+                // 벽(LevelLayout)과 충돌 판정을 수행하도록 조건을 확장하였습니다.
+                if (obj->name.find("Player") != std::string::npos || 
+                    obj->name.find("Enemy") != std::string::npos)
                 {
                     // 외부에서 강제로 호출하는 대신, levelLayout의 주체적인 함수들을 호출해 준다.
                     // 만약 LevelLayout 내부 함수가 묶여있다면 지형 오브젝트의 Update를 활용하거나

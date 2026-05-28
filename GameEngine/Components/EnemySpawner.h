@@ -37,10 +37,11 @@ public:
     float dashSpeed = 0.15f;    // 돌진 속도
     float dashDuration = 0.4f;  // 돌진 유지 시간(초)
 
+    GameLoop* pLoop = nullptr;
+
 private:
     GameObject* CreateNewEnemyInstance();
 
-    GameLoop* pLoop = nullptr;
     Mesh* pEnemyMesh = nullptr;
     Material* pEnemyMaterial = nullptr;
     GameObject* pPlayer = nullptr;

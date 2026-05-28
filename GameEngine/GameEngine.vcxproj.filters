@@ -99,9 +99,24 @@
     <ClCompile Include="Common\Logger.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="Components\TerrainStateController.cpp" />
-    <ClCompile Include="FrameWork\LevelLayout.cpp" />
-    <ClCompile Include="Components\EnvironmentRenderer.cpp" />
+    <ClCompile Include="Components\EnemyController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\EnemySpawner.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="States\EnemyState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\TerrainStateController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameWork\LevelLayout.cpp">
+      <Filter>FrameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\EnvironmentRenderer.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\D3D11ResourceHandler.h">

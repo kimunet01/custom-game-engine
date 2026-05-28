@@ -5,6 +5,8 @@
 #include "SpriteAnimator.h"
 #include "MeshRenderer.h"
 #include "EnemySpawner.h"
+#include "LevelLayout.h"
+#include "GameLoop.h"
 #include <cmath>
 
 EnemyController::~EnemyController()
@@ -36,6 +38,16 @@ void EnemyController::Reset()
 void EnemyController::Start()
 {
     if (pOwner == nullptr) return;
+
+    // [Gemini CLI] 벽 인식 및 우회를 위해 LevelLayout을 찾습니다.
+    if (pSpawner && pSpawner->pLoop) {
+        for (auto obj : pSpawner->pLoop->gameWorld) {
+            if (obj) {
+                pLayout = obj->GetComponent<LevelLayout>();
+                if (pLayout) break;
+            }
+        }
+    }
 
     pEnemyState = pOwner->GetState<EnemyState>();
     if (pEnemyState == nullptr) {
@@ -165,23 +177,56 @@ void EnemyController::Update(float dt)
         return;
     }
 
-// 거리와 상관없이 항상 플레이어를 향해 이동
-if (distance > 0.001f) {
-    float invDist = 1.0f / distance;
-    pOwner->velocity.x = (dx * invDist) * speed;
-    pOwner->velocity.y = (dy * invDist) * speed;
+    // [Gemini CLI] 우회 이동 로직 (Simple Obstacle Avoidance)
+    float moveX = 0.0f;
+    float moveY = 0.0f;
 
-    // 속도 방향에 따라 상태 결정
+    if (distance > 0.001f) {
+        float baseDirX = dx / distance;
+        float baseDirY = dy / distance;
+
+        // 이동할 방향 후보들 (기본 방향, +-45도, +-90도)
+        float angles[] = { 0.0f, 0.785f, -0.785f, 1.57f, -1.57f };
+        bool foundPath = false;
+
+        for (float angle : angles) {
+            float cs = std::cos(angle);
+            float sn = std::sin(angle);
+            float testDirX = baseDirX * cs - baseDirY * sn;
+            float testDirY = baseDirX * sn + baseDirY * cs;
+
+            // 해당 방향으로 조금 앞을 미리 체크
+            float checkDist = 0.1f;
+            float checkX = pOwner->position.x + testDirX * checkDist;
+            float checkY = pOwner->position.y + testDirY * checkDist;
+
+            if (pLayout == nullptr || !pLayout->IsPositionBlocked(checkX, checkY)) {
+                moveX = testDirX * speed;
+                moveY = testDirY * speed;
+                foundPath = true;
+                break;
+            }
+        }
+
+        if (!foundPath) {
+            moveX = 0.0f;
+            moveY = 0.0f;
+        }
+    }
+
+    pOwner->velocity.x = moveX;
+    pOwner->velocity.y = moveY;
+
+    // 속도 방향에 따라 애니메이션 상태 결정
     if (std::abs(pOwner->velocity.x) > std::abs(pOwner->velocity.y)) {
         if (pOwner->velocity.x > 0) pEnemyState->SetMove(EnemyStateType::MoveRight);
         else pEnemyState->SetMove(EnemyStateType::MoveLeft);
     }
-    else {
+    else if (std::abs(pOwner->velocity.y) > 0.001f) {
         if (pOwner->velocity.y > 0) pEnemyState->SetMove(EnemyStateType::MoveUp);
         else pEnemyState->SetMove(EnemyStateType::MoveDown);
     }
-}
-else {
-    pOwner->velocity = { 0, 0, 0 };
-}
+    else {
+        // 이동하지 않을 때는 이전 상태 유지 혹은 기본 방향
+    }
 }

@@ -11,6 +11,7 @@
 #include "SpriteAnimator.h"
 #include "VelocityController.h"
 #include "Resources/Mesh.h"
+#include "LevelLayout.h"
 
 EnemySpawner::EnemySpawner(GameLoop* loop, Mesh* mesh, Material* material, GameObject* player, float speed, int type)
     : pLoop(loop), pEnemyMesh(mesh), pEnemyMaterial(material), pPlayer(player), enemySpeed(speed), enemyType(type)
@@ -122,8 +123,38 @@ void EnemySpawner::Spawn()
     }
 
     // 활성화 시 위치 설정 (Z를 0.0f로 맞춰서 플레이어와 동일 평면에서 충돌 판정이 일어나게 함)
-    enemy->position.x = static_cast<float>(rand() % 200 - 100) / 100.0f;
-    enemy->position.y = static_cast<float>(rand() % 200 - 100) / 100.0f;
+    // [Gemini CLI 수정] 벽 위에 스폰되지 않도록 LevelLayout을 찾아 위치를 검증합니다.
+    LevelLayout* layout = nullptr;
+    if (pLoop) {
+        for (auto obj : pLoop->gameWorld) {
+            if (obj) {
+                layout = obj->GetComponent<LevelLayout>();
+                if (layout) break;
+            }
+        }
+    }
+
+    float spawnX = 0.0f;
+    float spawnY = 0.0f;
+    bool validPosition = false;
+    int retryCount = 0;
+
+    while (!validPosition && retryCount < 10) {
+        spawnX = static_cast<float>(rand() % 200 - 100) / 100.0f;
+        spawnY = static_cast<float>(rand() % 200 - 100) / 100.0f;
+        
+        if (layout) {
+            if (!layout->IsPositionBlocked(spawnX, spawnY)) {
+                validPosition = true;
+            }
+        } else {
+            validPosition = true; // 레이아웃을 못 찾으면 어쩔 수 없이 스폰
+        }
+        retryCount++;
+    }
+
+    enemy->position.x = spawnX;
+    enemy->position.y = spawnY;
     enemy->position.z = 0.0f; 
     enemy->velocity = { 0, 0, 0 };
 
