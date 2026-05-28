@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Component.h"
+#include "State.h"
 #include "EngineTypes.h"
 
 // 게임 월드에 배치되는 기본 오브젝트.
@@ -25,18 +26,15 @@ private:
     GameObject* parentObject;
     std::vector<GameObject*> childObjects;
 public:
-    // 충돌 판정이나 디버그 출력에서 사용할 식별 이름.
     std::string name;
-    // 렌더링과 충돌의 기준이 되는 월드 위치.
     Vec3 position;
-    // VelocityController가 position에 반영할 이동 속도.
     Vec3 velocity;
-    // MeshRenderer가 world matrix를 만들 때 사용하는 Z축 회전값.
     float rotation;
-    // CollisionSystem이 이번 프레임 충돌 여부를 표시하는 플래그.
     bool isCollided;
-    // 이 오브젝트에 부착된 행동 컴포넌트 목록.
     std::vector<Component*> components;
+    // 이 오브젝트에 부착된 데이터 State 목록. Component와 달리 lifecycle에 참여하지 않고
+    // 값 보유 + 변경 통보(콜백)만 담당한다.
+    std::vector<State*> states;
 
     explicit GameObject(const std::string& n);
     ~GameObject();
@@ -45,6 +43,10 @@ public:
     void AddComponent(Component* pComp);
     template <typename T>
     T* GetComponent();
+    // State의 owner를 연결하고 목록에 등록한다. 소유권은 GameObject가 갖는다.
+    void AddState(State* pState);
+    template <typename T>
+    T* GetState();
     // 자식 오브젝트를 등록한다. 현재는 소멸 시 함께 삭제하는 ownership 역할이 중심이다.
     void AddChildObject(GameObject* pObject);
 };
@@ -56,6 +58,21 @@ T* GameObject::GetComponent()
 
     for (Component* component : components) {
         T* matched = dynamic_cast<T*>(component);
+        if (matched != nullptr) {
+            return matched;
+        }
+    }
+
+    return nullptr;
+}
+
+template <typename T>
+T* GameObject::GetState()
+{
+    static_assert(std::is_base_of<State, T>::value, "T must derive from State");
+
+    for (State* state : states) {
+        T* matched = dynamic_cast<T*>(state);
         if (matched != nullptr) {
             return matched;
         }

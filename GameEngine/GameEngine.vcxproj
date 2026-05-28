@@ -75,7 +75,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -90,7 +90,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -105,7 +105,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -120,7 +120,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)Common;$(ProjectDir)Core;$(ProjectDir)FrameWork;$(ProjectDir)Components;$(ProjectDir)States;$(ProjectDir)Callbacks;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -133,15 +133,19 @@
   <ItemGroup>
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
+    <ClCompile Include="Components\EnvironmentRenderer.cpp" />
+    <ClCompile Include="Components\TerrainStateController.cpp" />
     <ClCompile Include="FrameWork\Component.cpp" />
     <ClCompile Include="FrameWork\CollisionSystem.cpp" />
     <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
     <ClCompile Include="FrameWork\GameLoop.cpp" />
     <ClCompile Include="FrameWork\GameObject.cpp" />
     <ClCompile Include="Core\main.cpp" />
-    <ClCompile Include="Components\AttackState.cpp" />
-    <ClCompile Include="Components\LifeState.cpp" />
-    <ClCompile Include="Components\MovementState.cpp" />
+    <ClCompile Include="Callbacks\StateCallbacks.cpp" />
+    <ClCompile Include="States\AttackState.cpp" />
+    <ClCompile Include="States\LifeState.cpp" />
+    <ClCompile Include="States\MovementState.cpp" />
+    <ClCompile Include="Components\AttackController.cpp" />
     <ClCompile Include="Components\MeshRenderer.cpp" />
     <ClCompile Include="Components\PlayerControl.cpp" />
     <ClCompile Include="Components\SpriteAnimator.cpp" />
@@ -151,10 +155,12 @@
     <ClCompile Include="Common\Resources\Material.cpp" />
     <ClCompile Include="Common\Resources\ShaderSet.cpp" />
     <ClCompile Include="Common\Logger.cpp" />
+    <ClCompile Include="FrameWork\LevelLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h" />
+    <ClInclude Include="Components\EnvironmentRenderer.h" />
     <ClInclude Include="FrameWork\Component.h" />
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="Common\D3D11ResourceHandler.h" />
@@ -162,9 +168,12 @@
     <ClInclude Include="Common\Utils.h" />
     <ClInclude Include="FrameWork\GameLoop.h" />
     <ClInclude Include="FrameWork\GameObject.h" />
-    <ClInclude Include="Components\AttackState.h" />
-    <ClInclude Include="Components\LifeState.h" />
-    <ClInclude Include="Components\MovementState.h" />
+    <ClInclude Include="Callbacks\StateCallbacks.h" />
+    <ClInclude Include="FrameWork\State.h" />
+    <ClInclude Include="States\AttackState.h" />
+    <ClInclude Include="States\LifeState.h" />
+    <ClInclude Include="States\MovementState.h" />
+    <ClInclude Include="Components\AttackController.h" />
     <ClInclude Include="Components\MeshRenderer.h" />
     <ClInclude Include="Components\PlayerControl.h" />
     <ClInclude Include="Components\SpriteAnimator.h" />
@@ -174,10 +183,12 @@
     <ClInclude Include="Common\Resources\Material.h" />
     <ClInclude Include="Common\Resources\ShaderSet.h" />
     <ClInclude Include="Common\Logger.h" />
+    <ClInclude Include="FrameWork\LevelLayout.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl" />
     <None Include="Common\Resources\Shaders\TextureShader.hlsl" />
+    <None Include="Components\TerrainStateController.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\chmov.png" />

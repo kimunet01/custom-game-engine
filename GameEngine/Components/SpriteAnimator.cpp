@@ -1,10 +1,11 @@
 #include "SpriteAnimator.h"
 
 #include "AttackState.h"
-#include "LifeState.h"
-#include "MovementState.h"
 #include "GameObject.h"
+#include "LifeState.h"
 #include "Logger.h"
+#include "MovementState.h"
+#include "StateCallbacks.h"
 
 SpriteAnimator::SpriteAnimator(Mesh* mesh)
     : mesh(mesh)
@@ -15,7 +16,8 @@ SpriteAnimator::SpriteAnimator(Mesh* mesh)
 void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int startFrame, int frameCount, float frameDuration, bool loop)
 {
     if (columns <= 0 || rows <= 0 || frameCount <= 0 || frameDuration <= 0.0f) {
-        Logger::Warning("SpriteAnimator ignored invalid clip. name=%s columns=%d rows=%d frameCount=%d frameDuration=%.3f", name.c_str(), columns, rows, frameCount, frameDuration);
+        Logger::Warning("SpriteAnimator ignored invalid clip. name=%s columns=%d rows=%d frameCount=%d frameDuration=%.3f",
+                        name.c_str(), columns, rows, frameCount, frameDuration);
         return;
     }
 
@@ -52,31 +54,54 @@ void SpriteAnimator::AddClip(const std::string& name, int columns, int rows, int
 
 void SpriteAnimator::Start()
 {
-    if (pOwner != nullptr) {
-        attackState = pOwner->GetComponent<AttackState>();
-        lifeState = pOwner->GetComponent<LifeState>();
-        movementState = pOwner->GetComponent<MovementState>();
+    if (pOwner == nullptr) {
+        Logger::Warning("SpriteAnimator started without owner");
+        isStarted = true;
+        return;
     }
 
-    if (attackState == nullptr) {
-        Logger::Warning("SpriteAnimator started without AttackState. owner=%s", pOwner ? pOwner->name.c_str() : "null");
+    // 3개 State 모두에 변경 콜백을 등록한다. 어느 하나가 바뀌어도 ReevaluateAnimClip이 클립을 재선택한다.
+    MovementState* movementState = pOwner->GetState<MovementState>();
+    AttackState* attackState = pOwner->GetState<AttackState>();
+    LifeState* lifeState = pOwner->GetState<LifeState>();
+
+    if (movementState != nullptr) {
+        movementState->Subscribe([this](MovementStateType p, MovementStateType n) {
+            StateCallbacks::OnAnimMovement(this, p, n);
+        });
     }
-    if (lifeState == nullptr) {
-        Logger::Warning("SpriteAnimator started without LifeState. owner=%s", pOwner ? pOwner->name.c_str() : "null");
-    }
-    if (movementState == nullptr) {
-        Logger::Warning("SpriteAnimator started without MovementState. owner=%s", pOwner ? pOwner->name.c_str() : "null");
+    else {
+        Logger::Warning("SpriteAnimator started without MovementState. owner=%s", pOwner->name.c_str());
     }
 
-    SelectClipForState();
+    if (attackState != nullptr) {
+        attackState->Subscribe([this](AttackStateType p, AttackStateType n) {
+            StateCallbacks::OnAnimAttack(this, p, n);
+        });
+    }
+    else {
+        Logger::Warning("SpriteAnimator started without AttackState. owner=%s", pOwner->name.c_str());
+    }
+
+    if (lifeState != nullptr) {
+        lifeState->Subscribe([this](LifeStateType p, LifeStateType n) {
+            StateCallbacks::OnAnimLife(this, p, n);
+        });
+    }
+    else {
+        Logger::Warning("SpriteAnimator started without LifeState. owner=%s", pOwner->name.c_str());
+    }
+
+    // 콜백은 "변경 시"에만 발화하므로, Start 시점에는 직접 1회 호출해 초기 클립을 동기화한다.
+    StateCallbacks::ReevaluateAnimClip(this);
+
     isStarted = true;
-    Logger::Info("SpriteAnimator started. owner=%s clipCount=%zu", pOwner ? pOwner->name.c_str() : "null", clips.size());
+    Logger::Info("SpriteAnimator started. owner=%s clipCount=%zu", pOwner->name.c_str(), clips.size());
 }
 
 void SpriteAnimator::Update(float dt)
 {
-    SelectClipForState();
-
+    // 클립 선택은 콜백이 담당하므로 여기서는 더 이상 폴링하지 않는다.
     if (currentClip == nullptr || currentClip->frames.empty()) {
         return;
     }
@@ -96,53 +121,27 @@ void SpriteAnimator::Update(float dt)
     ApplyCurrentFrame();
 }
 
-std::string SpriteAnimator::GetClipNameForCurrentState() const
+void SpriteAnimator::SwitchToClip(const std::string& name)
 {
-    if (lifeState != nullptr && lifeState->IsDead()) {
-        return "dead";
-    }
-
-    if (attackState != nullptr && attackState->IsAttacking()) {
-        if (attackState->GetState() == AttackStateType::SwordAttack) {
-            const char* direction = movementState != nullptr ? movementState->GetDirectionName() : "down";
-            return std::string("sword_attack_") + direction;
-        }
-
-        return attackState->GetStateName();
-    }
-
-    if (movementState != nullptr) {
-        return movementState->GetStateName();
-    }
-
-    return "";
-}
-
-void SpriteAnimator::SelectClipForState()
-{
-    const std::string nextClipName = GetClipNameForCurrentState();
-    if (nextClipName.empty()) {
+    // 동일 이름 전환은 무시 (중복 갱신 방지). 기존 SelectClipForState의 가드를 흡수했다.
+    if (currentClipName == name) {
         return;
     }
 
-    if (currentClipName == nextClipName) {
-        return;
-    }
-
-    auto it = clips.find(nextClipName);
+    auto it = clips.find(name);
     if (it == clips.end()) {
-        Logger::Warning("SpriteAnimator missing clip for state. state=%s", nextClipName.c_str());
+        Logger::Warning("SpriteAnimator missing clip for state. state=%s", name.c_str());
         currentClip = nullptr;
-        currentClipName = nextClipName;
+        currentClipName = name;
         return;
     }
 
     currentClip = &it->second;
-    currentClipName = nextClipName;
+    currentClipName = name;
     currentFrameIndex = 0;
     elapsedTime = 0.0f;
     ApplyCurrentFrame();
-    Logger::Info("SpriteAnimator selected clip. name=%s", currentClipName.c_str());
+    Logger::Info("SpriteAnimator switched clip. name=%s", currentClipName.c_str());
 }
 
 void SpriteAnimator::ApplyCurrentFrame()

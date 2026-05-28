@@ -87,6 +87,9 @@
     <ClCompile Include="Common\Logger.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Components\TerrainStateController.cpp" />
+    <ClCompile Include="FrameWork\LevelLayout.cpp" />
+    <ClCompile Include="Components\EnvironmentRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\D3D11ResourceHandler.h">
@@ -152,6 +155,8 @@
     <ClInclude Include="Common\Logger.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="FrameWork\LevelLayout.h" />
+    <ClInclude Include="Components\EnvironmentRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\chmov.png">
@@ -165,6 +170,12 @@
     </None>
     <None Include="Common\Resources\Shaders\TextureShader.hlsl">
       <Filter>Common\Resources\Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="UML.cd" />
+    <None Include="Components\TerrainStateController.h">
+      <Filter>Components</Filter>
     </None>
   </ItemGroup>
 </Project>

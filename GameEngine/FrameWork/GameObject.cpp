@@ -17,12 +17,16 @@ GameObject::GameObject(const std::string& n)
     Logger::Info("GameObject created. name=%s", name.c_str());
 }
 
-// 부착된 컴포넌트와 자식 오브젝트는 GameObject가 소유한다.
+// 부착된 컴포넌트, State, 자식 오브젝트는 GameObject가 소유한다.
 // 따라서 GameLoop가 GameObject를 delete하면 하위 구성도 함께 정리된다.
 GameObject::~GameObject() {
-    Logger::Info("GameObject destroyed. name=%s componentCount=%zu childCount=%zu", name.c_str(), components.size(), childObjects.size());
+    Logger::Info("GameObject destroyed. name=%s componentCount=%zu stateCount=%zu childCount=%zu",
+                 name.c_str(), components.size(), states.size(), childObjects.size());
     for (Component* component : components) {
         delete component;
+    }
+    for (State* state : states) {
+        delete state;
     }
     for (GameObject* object : childObjects) {
         delete object;
@@ -42,6 +46,20 @@ void GameObject::AddComponent(Component* pComp)
     pComp->isStarted = false;
     components.push_back(pComp);
     Logger::Info("Component added. owner=%s componentCount=%zu", name.c_str(), components.size());
+}
+
+// State를 부착할 때 owner를 연결한다.
+// Component와 달리 lifecycle 단계가 없으므로 isStarted 같은 플래그는 두지 않는다.
+void GameObject::AddState(State* pState)
+{
+    if (pState == nullptr) {
+        Logger::Warning("GameObject ignored null State. name=%s", name.c_str());
+        return;
+    }
+
+    pState->pOwner = this;
+    states.push_back(pState);
+    Logger::Info("State added. owner=%s stateCount=%zu", name.c_str(), states.size());
 }
 
 void GameObject::AddChildObject(GameObject* pObject) {
