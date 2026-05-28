@@ -85,10 +85,9 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects)
         {
             if (obj != nullptr)
             {
-                // [Gemini CLI 수정] 플레이어뿐만 아니라 "Enemy_"로 시작하는 모든 적들도 
-                // 벽(LevelLayout)과 충돌 판정을 수행하도록 조건을 확장하였습니다.
-                if (obj->name.find("Player") != std::string::npos || 
-                    obj->name.find("Enemy") != std::string::npos)
+                // 플레이어나 몬스터처럼 벽에 부딪혀야 하는 움직이는 객체들을 대상으로 삼는다.
+    
+                if (obj->name == "Player1" || obj->name == "Player2" || obj->name == "Player" || obj->name == "Monster")
                 {
                     // 외부에서 강제로 호출하는 대신, levelLayout의 주체적인 함수들을 호출해 준다.
                     // 만약 LevelLayout 내부 함수가 묶여있다면 지형 오브젝트의 Update를 활용하거나
@@ -275,18 +274,14 @@ void CollisionSystem::ResolveBounds(GameObject* object)
 
 void CollisionSystem::NotifyCollision(const CollisionPair& pair)
 {
-    // 현재 게임 규칙: Player와 Bullet(또는 BlueSlime)이 충돌하면 lose!를 한 번 출력한다.
+    // 현재 게임 규칙: Player와 Bullet이 충돌하면 lose!를 한 번 출력한다.
     // 더 많은 규칙이 생기면 이벤트/콜백 구조로 분리할 후보 지점이다.
     const bool firstIsPlayer = pair.first != nullptr && pair.first->name == "Player";
     const bool secondIsPlayer = pair.second != nullptr && pair.second->name == "Player";
-    
-    // Bullet 또는 Enemy 이름을 가진 오브젝트를 적으로 간주합니다.
-    const bool firstIsEnemy = pair.first != nullptr && 
-        (pair.first->name.find("Bullet") == 0 || pair.first->name.find("Enemy") == 0);
-    const bool secondIsEnemy = pair.second != nullptr && 
-        (pair.second->name.find("Bullet") == 0 || pair.second->name.find("Enemy") == 0);
+    const bool firstIsBullet = pair.first != nullptr && pair.first->name.find("Bullet") == 0;
+    const bool secondIsBullet = pair.second != nullptr && pair.second->name.find("Bullet") == 0;
 
-    if (!isLosePrinted && ((firstIsPlayer && secondIsEnemy) || (secondIsPlayer && firstIsEnemy))) {
+    if (!isLosePrinted && ((firstIsPlayer && secondIsBullet) || (secondIsPlayer && firstIsBullet))) {
         Logger::Info("lose!");
         isLosePrinted = true;
     }

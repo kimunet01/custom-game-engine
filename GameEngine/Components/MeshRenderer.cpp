@@ -17,7 +17,6 @@
 MeshRenderer::MeshRenderer(std::vector<Mesh*> meshes, Material* mat)
     : meshes(std::move(meshes))
     , pMatrixBuffer(nullptr)
-    , pColorBuffer(nullptr)
     , pMaterial(mat)
 {
     Logger::Info("MeshRenderer created. meshCount=%zu hasMaterial=%d", this->meshes.size(), pMaterial != nullptr);
@@ -41,7 +40,7 @@ void MeshRenderer::Start()
     GraphicsContext* ctx = GraphicsContext::getInstance();
     ID3D11Device* pd3dDevice = ctx->getDevice();
     if (pd3dDevice == nullptr) {
-        Logger::Error("MeshRenderer cannot create buffers because D3D11 device is null. owner=%s", pOwner->name.c_str());
+        Logger::Error("MeshRenderer cannot create matrix buffer because D3D11 device is null. owner=%s", pOwner->name.c_str());
         return;
     }
 
@@ -61,27 +60,9 @@ void MeshRenderer::Start()
     matrixInitData.pSysMem = &matrixData;
 
     // CreateBuffer가 성공해야 Render에서 VS constant buffer로 바인딩할 수 있다.
-    HRESULT hr = pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &pMatrixBuffer);
-    if (FAILED(hr) || pMatrixBuffer == nullptr) {
-        Logger::Error("MeshRenderer failed to create matrix buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(hr));
-        return;
-    }
-
-    // ColorBuffer 생성 (PS b1 슬롯용)
-    D3D11_BUFFER_DESC colorBufferDesc = {};
-    colorBufferDesc.ByteWidth = sizeof(ColorBufferType);
-    colorBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    colorBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-
-    ColorBufferType colorData = {};
-    colorData.tintColor = color;
-
-    D3D11_SUBRESOURCE_DATA colorInitData = {};
-    colorInitData.pSysMem = &colorData;
-
-    hr = pd3dDevice->CreateBuffer(&colorBufferDesc, &colorInitData, &pColorBuffer);
-    if (FAILED(hr) || pColorBuffer == nullptr) {
-        Logger::Error("MeshRenderer failed to create color buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(hr));
+    const HRESULT matrixHr = pd3dDevice->CreateBuffer(&matrixBufferDesc, &matrixInitData, &pMatrixBuffer);
+    if (FAILED(matrixHr) || pMatrixBuffer == nullptr) {
+        Logger::Error("MeshRenderer failed to create matrix buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(matrixHr));
         return;
     }
 
@@ -101,11 +82,12 @@ void MeshRenderer::Render()
     // 여기서 input layout, VS/PS, 색상/텍스처 같은 머티리얼 상태가 GPU에 올라간다.
     pMaterial->Bind();
 
-    if (pOwner == nullptr || pImmediateContext == nullptr || pMatrixBuffer == nullptr || pColorBuffer == nullptr) {
+    if (pOwner == nullptr || pImmediateContext == nullptr || pMatrixBuffer == nullptr) {
         return;
     }
 
-    // 1. Matrix Buffer 갱신
+    // 현재 GameObject의 회전과 위치를 world matrix로 변환한다.
+    // 지금 구조에서는 scale이 없으므로 rotation과 translation만 적용한다.
     MatrixBufferType matrixData = {};
     matrixData.worldMatrix =
         DirectX::XMMatrixRotationZ(pOwner->rotation) *
@@ -117,12 +99,15 @@ void MeshRenderer::Render()
     matrixData.viewMatrix = DirectX::XMMatrixIdentity();
     matrixData.projectionMatrix = DirectX::XMMatrixIdentity();
 
-    pImmediateContext->UpdateSubresource(pMatrixBuffer, 0, nullptr, &matrixData, 0, 0);
-
-    // 2. Color Buffer 갱신
-    ColorBufferType colorData = {};
-    colorData.tintColor = color;
-    pImmediateContext->UpdateSubresource(pColorBuffer, 0, nullptr, &colorData, 0, 0);
+    // 매 프레임 변하는 오브젝트 행렬을 constant buffer에 갱신한다.
+    pImmediateContext->UpdateSubresource(
+        pMatrixBuffer,
+        0,
+        nullptr,
+        &matrixData,
+        0,
+        0
+    );
 
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
@@ -132,26 +117,18 @@ void MeshRenderer::Render()
             continue;
         }
 
-        // Mesh의 vertex buffer를 input assembler에 연결
+        // Mesh의 vertex buffer를 input assembler에 연결하고, 행렬 버퍼를 VS b0 슬롯에 연결한다.
         pImmediateContext->IASetVertexBuffers(0, 1, &pMesh->pVertexBuffer, &stride, &offset);
-        
-        // 상수 버퍼 바인딩: VS b0(행렬), PS b2(색상)
-        // (PS b1은 EnvironmentBuffer가 사용하므로 b2로 옮김)
         pImmediateContext->VSSetConstantBuffers(0, 1, &pMatrixBuffer);
-        pImmediateContext->PSSetConstantBuffers(2, 1, &pColorBuffer);
-        
         pImmediateContext->Draw(static_cast<UINT>(pMesh->mesh.size()), 0);
     }
 }
 
 
 MeshRenderer::~MeshRenderer() {
-    // 생성한 COM 객체들을 해제한다.
+    // pMatrixBuffer는 MeshRenderer가 직접 만든 COM 객체이므로 여기서 Release한다.
     if (pMatrixBuffer != nullptr) {
         pMatrixBuffer->Release();
-    }
-    if (pColorBuffer != nullptr) {
-        pColorBuffer->Release();
     }
     Logger::Info("MeshRenderer destroyed");
 }
