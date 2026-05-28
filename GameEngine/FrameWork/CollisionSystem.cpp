@@ -68,20 +68,17 @@ float CollisionSystem::GetMaxY() const
 
 void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects)
 {
-    // 1. 매개변수로 들어온 gameObjects를 사용하여 LevelLayout 부품을 찾는다!
+    // 매개변수로 들어온 gameObjects를 사용하여 LevelLayout 부품을 찾는다
     LevelLayout* levelLayout = nullptr;
     for (GameObject* obj : gameObjects) {
         if (obj != nullptr) {
             levelLayout = obj->GetComponent<LevelLayout>();
             if (levelLayout != nullptr) {
-                break; // 찾았으면 루프 탈출!
+                break; // 찾았으면 루프 탈출
             }
         }
     }
 
-    // 2. 만약 지형 부품(levelLayout)을 찾았다면, 지형 오브젝트 스스로가
-    // Update 단계를 거쳐 내부의 밀어내기 함수들을 실행하게 만들자!
-    // (이렇게 하면 private 함수에 직접 접근하지 않아도 프레임워크 흐름상 안전하게 연산이 수행된단다)
     if (levelLayout != nullptr)
     {
         for (GameObject* obj : gameObjects)
@@ -89,15 +86,11 @@ void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects)
             if (obj != nullptr)
             {
                 // 플레이어나 몬스터처럼 벽에 부딪혀야 하는 움직이는 객체들을 대상으로 삼는다.
-                // 네 로그에 찍힌 이름이 "Player1", "Player2"일 테니 이렇게 필터링해 주면 안전해!
+    
                 if (obj->name == "Player1" || obj->name == "Player2" || obj->name == "Player" || obj->name == "Monster")
                 {
                     // 외부에서 강제로 호출하는 대신, levelLayout의 주체적인 함수들을 호출해 준다.
                     // 만약 LevelLayout 내부 함수가 묶여있다면 지형 오브젝트의 Update를 활용하거나
-                    // 아래처럼 public 인터페이스를 타는 것이 정석이란다!
-
-                    // 💡 [팁] 만약 이 함수들이 여전히 막힌다면, LevelLayout.h를 열어서 
-                    // 해당 함수들 바로 위에 'public:' 한 줄만 적어주면 에러가 완전히 사라져!
                     levelLayout->ClampGameObjectToBounds(obj);
                     levelLayout->ResolvePillarCollision(obj);
                     levelLayout->ResolveBoxCollision(obj);
