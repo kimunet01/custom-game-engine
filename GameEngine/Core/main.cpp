@@ -19,6 +19,7 @@
 #include "Logger.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
+#include "EnemySpawner.h"
 #include "LevelLayout.h"        
 #include "EnvironmentRenderer.h"    
 #include "TerrainStateController.h"
@@ -69,6 +70,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     ctx->createWindow(hInstance, nCmdShow, L"test", videoConfig.Width, videoConfig.Height);
     ctx->createDeviceAndSwapChainAndRTV(videoConfig.Width, videoConfig.Height);
 
+    // 1. 플레이어 자원 설정
     Mesh playerMesh(CreateSpriteQuadMesh(0.16f, 0.18f, 0.0f, 0.3f, 0.1f, 0.4f));
     playerMesh.createVertexBuffer();
 
@@ -76,9 +78,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     ShaderSet textureShaders = ctx->CompileAndCreate(textureShaderPath, 0, true, textureIed, 2);
     TextureMaterial* playerMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
 
-    GameLoop loop;
-    loop.collisionSystem.SetBounds(-0.85f, 0.87f, -0.86f, 0.65f);
+    // 2. 적(Enemy) 자원 설정
+    // 적의 크기를 여기서 조절합니다 (예: 0.15f)
+    Mesh enemyMesh(CreateSpriteQuadMesh(0.15f, 0.18f, 0.0f, 0.0f, 1.0f, 1.0f));
+    enemyMesh.createVertexBuffer();
+    TextureMaterial* enemyMaterial = new TextureMaterial(textureShaders, L"assets\\orc1_run_full.png");
+    TextureMaterial* enemyMaterialOrc2 = new TextureMaterial(textureShaders, L"assets\\orc2_run_full.png");
 
+    GameLoop loop;
+    // 맵 경계 설정 (팀원들의 최신 경계 값 반영 및 제 충돌 설정 유지)
+    loop.collisionSystem.SetBounds(-0.85f, 0.87f, -0.86f, 0.65f);
+    loop.collisionSystem.SetCollisionDistance(0.06f);
+
+    // [Upstream] 맵 및 배경 렌더링 설정
     TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
     GameObject* stageTerrain = new GameObject("StageTerrain");
     stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
@@ -90,6 +102,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     stageTerrain->AddComponent(new TerrainStateController());
     loop.AddGameObject(stageTerrain);
 
+    // 3. 플레이어 생성
     GameObject* player = new GameObject("Player");
     // State는 Component가 아닌 데이터 단위. GameObject의 states 컬렉션에 등록한다.
     // 콜백을 구독하는 PlayerControl/SpriteAnimator보다 먼저 등록되어야 Start() 시점에 GetState로 발견된다.
@@ -118,7 +131,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     player->AddComponent(new MeshRenderer({ &playerMesh }, playerMaterial));
     loop.AddGameObject(player);
 
+    // 4. 에너미 스포너 생성 (기본형 - Orc1)
+    GameObject* spawnerObj1 = new GameObject("EnemySpawner1");
+    // 타입 0 (기본), 속도 0.04f
+    EnemySpawner* spawner1 = new EnemySpawner(&loop, &enemyMesh, enemyMaterial, player, 0.04f, 0);
+    spawnerObj1->AddComponent(spawner1);
+    loop.AddGameObject(spawnerObj1);
+    // 루프 시작 전 미리 풀을 생성합니다.
+    spawner1->PreAllocate(30);
 
+    // 5. 에너미 스포너 생성 (돌진형 - Orc2)
+    GameObject* spawnerObj2 = new GameObject("EnemySpawner2");
+    // 타입 1 (돌진형 탑재), 기본 속도는 조금 느린 0.03f
+    EnemySpawner* dashSpawner = new EnemySpawner(&loop, &enemyMesh, enemyMaterialOrc2, player, 0.03f, 1);
+
+    dashSpawner->dashRange = 0.3f;     // 돌진 거리
+    dashSpawner->dashSpeed = 0.4f;    // 돌진 속도
+    dashSpawner->dashPrepTime = 0.5f;  // 돌진 전 제자리 정지 시간
+    dashSpawner->dashDuration = 0.5f;  // 돌진이 유지되는 시간
+    
+    spawnerObj2->AddComponent(dashSpawner);
+    loop.AddGameObject(spawnerObj2);
+    // 루프 시작 전 미리 풀을 생성합니다
+    dashSpawner->PreAllocate(30);
 
     loop.Run();
 

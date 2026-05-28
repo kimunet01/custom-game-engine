@@ -155,12 +155,18 @@
     <ClCompile Include="Common\Resources\Material.cpp" />
     <ClCompile Include="Common\Resources\ShaderSet.cpp" />
     <ClCompile Include="Common\Logger.cpp" />
+    <ClCompile Include="Components\EnemyController.cpp" />
+    <ClCompile Include="Components\EnemySpawner.cpp" />
+    <ClCompile Include="States\EnemyState.cpp" />
     <ClCompile Include="FrameWork\LevelLayout.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h" />
     <ClInclude Include="Components\EnvironmentRenderer.h" />
+    <ClInclude Include="Components\EnemyController.h" />
+    <ClInclude Include="Components\EnemySpawner.h" />
+    <ClInclude Include="States\EnemyState.h" />
     <ClInclude Include="FrameWork\Component.h" />
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="Common\D3D11ResourceHandler.h" />

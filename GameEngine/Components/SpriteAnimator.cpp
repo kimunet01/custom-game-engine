@@ -102,7 +102,7 @@ void SpriteAnimator::Start()
 void SpriteAnimator::Update(float dt)
 {
     // 클립 선택은 콜백이 담당하므로 여기서는 더 이상 폴링하지 않는다.
-    if (currentClip == nullptr || currentClip->frames.empty()) {
+    if (currentClip == nullptr || currentClip->frames.empty() || isPaused) {
         return;
     }
 
