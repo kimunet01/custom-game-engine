@@ -16,11 +16,9 @@
 #include "MovementState.h"
 #include "AttackState.h"
 #include "LifeState.h"
-#include "EnemyState.h"
 
 class SpriteAnimator;
 class PlayerControl;
-class EnemyController;
 
 namespace StateCallbacks
 {
@@ -37,15 +35,4 @@ namespace StateCallbacks
     // PlayerControl 측 반응: Update가 사용할 입력 잠금 플래그를 갱신한다.
     void OnControlLife  (PlayerControl* self, LifeStateType   prev, LifeStateType   next);
     void OnControlAttack(PlayerControl* self, AttackStateType prev, AttackStateType next);
-
-    // --- 2026-05-23: 리팩토링 가이드(중앙 집중화) 원칙에 따른 Enemy 관련 콜백 통합 추가 ---
-
-    // Enemy 애니메이션 반응
-    void OnAnimEnemy(SpriteAnimator* self, EnemyStateType prev, EnemyStateType next);
-
-    // EnemyController 제어 반응
-    void OnControlEnemy(EnemyController* self, EnemyStateType prev, EnemyStateType next);
-
-    // 적 개체 초기 동기화
-    void ReevaluateEnemyAnimClip(SpriteAnimator* self);
 }

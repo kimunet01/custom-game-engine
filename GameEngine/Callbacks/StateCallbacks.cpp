@@ -6,8 +6,6 @@
 #include "Logger.h"
 #include "PlayerControl.h"
 #include "SpriteAnimator.h"
-#include "EnemyController.h"
-#include "EnemyState.h"
 
 namespace
 {
@@ -101,48 +99,5 @@ namespace StateCallbacks
             return;
         }
         self->isAttackLocked = (next != AttackStateType::NoAttack);
-    }
-
-    // --- 2026-05-23: 리팩토링 가이드(중앙 집중화) 원칙에 따른 Enemy 관련 콜백 통합 추가 ---
-
-    void OnAnimEnemy(SpriteAnimator* self, EnemyStateType prev, EnemyStateType next)
-    {
-        Logger::Info("StateCallbacks::OnAnimEnemy %s -> %s",
-                     EnemyState::ToString(prev), EnemyState::ToString(next));
-        
-        if (self == nullptr || self->pOwner == nullptr) return;
-        
-        // DashPrep 상태일 때는 기존 스프라이트(방향)를 유지하기 위해 클립을 바꾸지 않음.
-        // 대신 EnemyController에서 animator->isPaused = true 처리를 함.
-        if (next == EnemyStateType::DashPrep) return;
-
-        self->SwitchToClip(EnemyState::ToString(next));
-    }
-
-    void OnControlEnemy(EnemyController* self, EnemyStateType prev, EnemyStateType next)
-    {
-        Logger::Info("StateCallbacks::OnControlEnemy %s -> %s",
-                     EnemyState::ToString(prev), EnemyState::ToString(next));
-        if (self == nullptr) return;
-
-        // Move 이외의 상태(Dead, Disabled)에서는 움직임을 잠금
-        bool isMoving = (next == EnemyStateType::MoveLeft || next == EnemyStateType::MoveRight ||
-                         next == EnemyStateType::MoveUp   || next == EnemyStateType::MoveDown ||
-                         next == EnemyStateType::Dashing);
-        
-        // DashPrep 상태도 타이머 업데이트가 필요하므로 완전히 잠그지 않음 (내부에서 velocity=0 처리)
-        bool isDashPrep = (next == EnemyStateType::DashPrep);
-
-        self->isMovementLocked = !(isMoving || isDashPrep);
-    }
-
-    void ReevaluateEnemyAnimClip(SpriteAnimator* self)
-    {
-        if (self == nullptr || self->pOwner == nullptr) return;
-
-        EnemyState* enemy = self->pOwner->GetState<EnemyState>();
-        if (enemy != nullptr) {
-            self->SwitchToClip(enemy->GetStateName());
-        }
     }
 }
