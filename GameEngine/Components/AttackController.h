@@ -14,6 +14,7 @@
 #include "Component.h"
 
 class AttackState;
+class CombatSystem;
 
 class AttackController : public Component
 {
@@ -26,11 +27,19 @@ public:
     void Update(float dt) override;
 
     // 공격 시작 트리거. AttackState를 SwordAttack으로 Set하고 duration 초만큼 유지한다.
+    // combatSystem이 설정되어 있으면 hitbox 검사를 1회 큐에 등록한다 (자동 적중 판정).
     void TriggerSword(float duration);
     // 마법 공격 시작 트리거. AttackState를 MagicAttack으로 Set하고 duration 초만큼 유지한다.
     void TriggerMagic(float duration);
 
+    // 외부(main)에서 CombatSystem 포인터를 주입한다. nullptr면 hitbox 등록은 skip되고 자체 State만 변경된다.
+    void SetCombatSystem(CombatSystem* combat);
+    // 공격당 데미지를 조정한다. 기본값은 1.
+    void SetSwordDamage(int dmg);
+
 private:
     AttackState* attackState = nullptr;
+    CombatSystem* combatSystem = nullptr;
     float remainingTime = 0.0f;
+    int swordDamage = 1;
 };

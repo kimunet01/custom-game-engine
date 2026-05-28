@@ -140,8 +140,6 @@ void PlayerControl::Update(float dt)
     if (moveRight) {
         pOwner->velocity.x += speed;
     }
-    if (moveUp || moveDown || moveLeft || moveRight) {
-    }
     if (rotate) {
         // 회전은 위치 이동과 달리 이 컴포넌트가 직접 누적한다.
         pOwner->rotation += speed * dt;

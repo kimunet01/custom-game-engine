@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>State System Refactoring Guide</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3352;
+    --accent-blue: #4f8ef7;
+    --accent-green: #3ecf8e;
+    --accent-purple: #a78bfa;
+    --accent-orange: #fb923c;
+    --accent-red: #f87171;
+    --accent-yellow: #fbbf24;
+    --text: #e2e8f0;
+    --text-muted: #8892a4;
+    --font-code: 'Consolas', 'Fira Code', monospace;
+    --font-ui: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 40px 20px 80px;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  /* ── 헤더 ── */
+  .hero {
+    text-align: center;
+    padding: 60px 0 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 60px;
+  }
+  .hero .tag {
+    display: inline-block;
+    background: rgba(79,142,247,.15);
+    color: var(--accent-blue);
+    border: 1px solid rgba(79,142,247,.4);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 12px; }
+  .hero h1 span { color: var(--accent-blue); }
+  .hero p { color: var(--text-muted); font-size: 1.05rem; max-width: 600px; margin: 0 auto; }
+
+  /* ── 섹션 제목 ── */
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .num {
+    background: var(--accent-blue);
+    color: #fff;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    font-size: .85rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+
+  section { margin-bottom: 70px; }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .card-title {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: 16px;
+    font-weight: 700;
+  }
+
+  /* ── 2-컬럼 ── */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:720px){ .cols2 { grid-template-columns: 1fr; } }
+
+  /* ── 코드 블록 ── */
+  pre {
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    overflow-x: auto;
+    font-family: var(--font-code);
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 0;
+  }
+  .kw  { color: #c792ea; }
+  .ty  { color: #82aaff; }
+  .fn  { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .cm  { color: #546e7a; font-style: italic; }
+  .num { color: #f78c6c; }
+  .op  { color: #89ddff; }
+
+  /* ── Before / After 태그 ── */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .badge-before { background: rgba(248,113,113,.15); color: var(--accent-red); border: 1px solid rgba(248,113,113,.3); }
+  .badge-after  { background: rgba(62,207,142,.15);  color: var(--accent-green); border: 1px solid rgba(62,207,142,.3); }
+  .badge-new    { background: rgba(79,142,247,.15);  color: var(--accent-blue);  border: 1px solid rgba(79,142,247,.3); }
+
+  /* ── 아키텍처 박스 다이어그램 ── */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    position: relative;
+  }
+  .arch-diagram h3 { text-align: center; margin-bottom: 24px; }
+
+  /* layer row */
+  .layer-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .layer-connector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 28px;
+    color: var(--text-muted);
+    font-size: 18px;
+    margin-bottom: 0;
+  }
+  .box {
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 130px;
+    border: 1.5px solid;
+  }
+  .box-blue   { background: rgba(79,142,247,.12);  border-color: rgba(79,142,247,.5);  color: var(--accent-blue); }
+  .box-green  { background: rgba(62,207,142,.12);  border-color: rgba(62,207,142,.5);  color: var(--accent-green); }
+  .box-purple { background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.5); color: var(--accent-purple); }
+  .box-orange { background: rgba(251,146,60,.12);  border-color: rgba(251,146,60,.5);  color: var(--accent-orange); }
+  .box-red    { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.5); color: var(--accent-red); }
+  .box-yellow { background: rgba(251,191,36,.12);  border-color: rgba(251,191,36,.5);  color: var(--accent-yellow); }
+  .box-gray   { background: rgba(136,146,164,.1);  border-color: rgba(136,146,164,.4); color: var(--text-muted); }
+
+  /* sub-label */
+  .box .sub { font-size: 10px; font-weight: 400; opacity: .7; display: block; }
+
+  /* ── 흐름 다이어그램 (SVG) ── */
+  .flow-wrap { overflow-x: auto; }
+  svg text { font-family: var(--font-ui); }
+
+  /* ── 폴더 트리 ── */
+  .tree {
+    font-family: var(--font-code);
+    font-size: 13px;
+    line-height: 1.9;
+    white-space: pre;
+    overflow-x: auto;
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+  }
+  .tree .dir  { color: var(--accent-blue); font-weight: 600; }
+  .tree .file { color: var(--text); }
+  .tree .new  { color: var(--accent-green); }
+  .tree .mod  { color: var(--accent-yellow); }
+  .tree .del  { color: var(--accent-red); text-decoration: line-through; opacity: .6; }
+  .tree .cm   { color: var(--text-muted); font-style: italic; font-size: 12px; }
+
+  /* ── 역할 테이블 ── */
+  .role-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .role-table th {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .role-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(46,51,82,.5);
+    vertical-align: top;
+  }
+  .role-table tr:last-child td { border-bottom: none; }
+  .role-table td:first-child { font-weight: 700; }
+  .role-table code {
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--font-code);
+    font-size: 12px;
+    color: var(--accent-purple);
+  }
+
+  /* ── 콜백 흐름 카드 ── */
+  .cb-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    background: #0a0c14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .cb-step {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    white-space: nowrap;
+  }
+  .cb-arrow {
+    color: var(--text-muted);
+    padding: 0 8px;
+    font-size: 16px;
+  }
+  .cb-step.s1 { border: 1px solid rgba(251,191,36,.4); color: var(--accent-yellow); }
+  .cb-step.s2 { border: 1px solid rgba(251,146,60,.4); color: var(--accent-orange); }
+  .cb-step.s3 { border: 1px solid rgba(79,142,247,.4); color: var(--accent-blue); }
+  .cb-step.s4 { border: 1px solid rgba(62,207,142,.4); color: var(--accent-green); }
+
+  /* ── 주의사항 / 팁 ── */
+  .callout {
+    border-left: 3px solid;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .callout-info  { border-color: var(--accent-blue);   background: rgba(79,142,247,.07); }
+  .callout-warn  { border-color: var(--accent-yellow); background: rgba(251,191,36,.07); }
+  .callout-good  { border-color: var(--accent-green);  background: rgba(62,207,142,.07); }
+  .callout strong { font-weight: 700; }
+
+  /* ── divider ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 50px 0; }
+
+  /* scroll-top */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+    margin-bottom: 50px;
+  }
+  .toc h3 { margin-bottom: 10px; font-size: .9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 4px; }
+  .toc a  { color: var(--accent-blue); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ══════════════════════════════════
+     HERO
+══════════════════════════════════ -->
+<div class="hero">
+  <div class="tag">Architecture Refactoring</div>
+  <h1>State System <span>리팩토링</span> 가이드</h1>
+  <p>Component 기반 State 폴링 구조를 Observable State + Callback 구조로 전환한 변경사항을 팀원에게 설명하는 문서입니다.</p>
+</div>
+
+<!-- 목차 -->
+<div class="toc">
+  <h3>목차</h3>
+  <ol>
+    <li><a href="#s1">왜 바꿨나요? — 문제 정의</a></li>
+    <li><a href="#s2">Before / After 아키텍처 비교</a></li>
+    <li><a href="#s3">새로운 폴더 구조</a></li>
+    <li><a href="#s4">Observable State 패턴</a></li>
+    <li><a href="#s5">Callback 흐름 추적</a></li>
+    <li><a href="#s6">각 레이어 역할 정리</a></li>
+    <li><a href="#s7">코드 비교 — Before vs After</a></li>
+    <li><a href="#s8">새 파일 한눈에 보기</a></li>
+  </ol>
+</div>
+
+
+<!-- ══════════════════════════════════
+     1. 문제 정의
+══════════════════════════════════ -->
+<section id="s1">
+<h2><span class="num">1</span> 왜 바꿨나요? — 문제 정의</h2>
+
+<div class="cols2">
+  <div class="card">
+    <div class="card-title" style="color:var(--accent-red)">❌ 기존 방식의 문제점</div>
+    <ul style="padding-left:18px; color:var(--text-muted); font-size:14px; line-height:2;">
+      <li>State가 <strong style="color:var(--text)">Component를 상속</strong>하여 매 프레임 Update() 호출</li>
+      <li>다른 Component가 <strong style="color:var(--text)">State*를 캐시해 직접 폴링</strong> (<code style="font-family:var(--font-code); font-size:12px; color:var(--accent-purple)">IsDead(), IsAttacking()</code>)</li>
+      <li>State 변경 시점을 아무도 모름 → 반응 타이밍 불명확</li>
+      <li>State 로직 + 타이머 + 조건 판단이 한 파일에 혼재</li>
+      <li>새 Component가 State를 참조하려면 매번 직접 연결 코드 추가</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--accent-green)">✅ 새 방식의 목표</div>
+    <ul style="padding-left:18px; color:var(--text-muted); font-size:14px; line-height:2;">
+      <li>State = <strong style="color:var(--text)">순수 데이터 보유자</strong>, 값만 들고 있음</li>
+      <li>값이 바뀌면 <strong style="color:var(--text)">자동으로 구독자에게 통보</strong> (Observer Pattern)</li>
+      <li>반응 로직은 <strong style="color:var(--text)">Callbacks 폴더</strong>에 중앙 집중</li>
+      <li>공격 타이머 등 로직은 <strong style="color:var(--text)">AttackController</strong>로 분리</li>
+      <li>Component들은 State를 <strong style="color:var(--text)">폴링하지 않음</strong></li>
+    </ul>
+  </div>
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════
+     2. Before / After 아키텍처
+══════════════════════════════════ -->
+<section id="s2">
+<h2><span class="num">2</span> Before / After 아키텍처 비교</h2>
+
+<div class="cols2">
+  <!-- BEFORE -->
+  <div class="arch-diagram">
+    <div class="badge badge-before" style="margin-bottom:12px;">Before</div>
+    <h3 style="font-size:.95rem; color:var(--text-muted);">State ⊂ Component — 매 프레임 폴링</h3>
+
+    <div class="layer-row">
+      <div class="box box-gray">main.cpp<span class="sub">AddComponent(state)</span></div>
+    </div>
+    <div class="layer-connector">↓</div>
+    <div class="layer-row">
+      <div class="box box-red">AttackState<br><span class="sub">extends Component</span></div>
+      <div class="box box-red">LifeState<br><span class="sub">extends Component</span></div>
+      <div class="box box-red">MovementState<br><span class="sub">extends Component</span></div>
+    </div>
+    <div class="layer-connector" style="font-size:12px; color:var(--accent-red);">⬆ 직접 캐시 후 폴링 (매 프레임)</div>
+    <div class="layer-row">
+      <div class="box box-orange">PlayerControl<br><span class="sub">IsDead()? IsAttacking()?</span></div>
+      <div class="box box-orange">SpriteAnimator<br><span class="sub">GetState()로 클립 선택</span></div>
+    </div>
+
+    <div style="margin-top:20px; padding:12px; background:rgba(248,113,113,.07); border-radius:8px; font-size:12px; color:var(--accent-red); border:1px solid rgba(248,113,113,.2);">
+      ⚠ State가 Component와 동일한 계층에 있어 <br>"데이터"와 "로직"이 구분되지 않습니다.
+    </div>
+  </div>
+
+  <!-- AFTER -->
+  <div class="arch-diagram">
+    <div class="badge badge-after" style="margin-bottom:12px;">After</div>
+    <h3 style="font-size:.95rem; color:var(--text-muted);">State = 데이터, Callback = 반응 로직</h3>
+
+    <div class="layer-row">
+      <div class="box box-gray">main.cpp<br><span class="sub">AddState() / AddComponent()</span></div>
+    </div>
+    <div class="layer-connector">↓ Subscribe</div>
+    <div class="layer-row">
+      <div class="box box-blue">AttackState<span class="sub">ObservableState</span></div>
+      <div class="box box-blue">LifeState<span class="sub">ObservableState</span></div>
+      <div class="box box-blue">MovementState<span class="sub">ObservableState</span></div>
+    </div>
+    <div class="layer-connector" style="font-size:12px; color:var(--accent-green);">↓ 값 변경 시 자동 발화</div>
+    <div class="layer-row">
+      <div class="box box-purple">StateCallbacks<br><span class="sub">OnAnimAttack / OnControlLife …</span></div>
+    </div>
+    <div class="layer-connector">↓ 호출</div>
+    <div class="layer-row">
+      <div class="box box-green">SpriteAnimator<br><span class="sub">SwitchToClip()</span></div>
+      <div class="box box-green">PlayerControl<br><span class="sub">isMovementLocked 플래그</span></div>
+    </div>
+
+    <div style="margin-top:20px; padding:12px; background:rgba(62,207,142,.07); border-radius:8px; font-size:12px; color:var(--accent-green); border:1px solid rgba(62,207,142,.2);">
+      ✓ State 변경 → 즉시 콜백 발화 → Component 반응.<br>Component는 State를 직접 읽지 않습니다.
+    </div>
+  </div>
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════
+     3. 폴더 구조
+══════════════════════════════════ -->
+<section id="s3">
+<h2><span class="num">3</span> 새로운 폴더 구조</h2>
+
+<div class="cols2">
+  <div>
+    <div class="badge badge-before">Before</div>
+    <div class="tree">
+<span class="dir">GameEngine/</span>
+├── <span class="dir">FrameWork/</span>
+│   ├── Component.h / .cpp
+│   └── GameObject.h / .cpp
+├── <span class="dir">Components/</span>
+│   ├── <span class="del">AttackState.h / .cpp</span>   <span class="cm">← Component였음</span>
+│   ├── <span class="del">LifeState.h / .cpp</span>
+│   ├── <span class="del">MovementState.h / .cpp</span>
+│   ├── MeshRenderer.h / .cpp
+│   ├── PlayerControl.h / .cpp   <span class="cm">← 폴링 코드 포함</span>
+│   ├── SpriteAnimator.h / .cpp  <span class="cm">← 클립 선택 로직</span>
+│   └── VelocityController.h / .cpp
+└── <span class="dir">Core/</span>
+    └── main.cpp
+    </div>
+  </div>
+
+  <div>
+    <div class="badge badge-after">After</div>
+    <div class="tree">
+<span class="dir">GameEngine/</span>
+├── <span class="dir">FrameWork/</span>
+│   ├── Component.h / .cpp
+│   ├── <span class="new">State.h</span>               <span class="cm">← ObservableState 기반</span>
+│   └── <span class="mod">GameObject.h / .cpp</span>   <span class="cm">← states 컬렉션 추가</span>
+├── <span class="new">States/</span>                    <span class="cm">← 데이터 전용 레이어</span>
+│   ├── <span class="new">AttackState.h / .cpp</span>
+│   ├── <span class="new">LifeState.h / .cpp</span>
+│   └── <span class="new">MovementState.h / .cpp</span>
+├── <span class="new">Callbacks/</span>                <span class="cm">← 반응 로직 중앙화</span>
+│   ├── <span class="new">StateCallbacks.h</span>
+│   └── <span class="new">StateCallbacks.cpp</span>
+├── <span class="dir">Components/</span>
+│   ├── <span class="new">AttackController.h / .cpp</span> <span class="cm">← 타이머 로직 분리</span>
+│   ├── MeshRenderer.h / .cpp
+│   ├── <span class="mod">PlayerControl.h / .cpp</span>   <span class="cm">← 폴링 제거, 플래그 반응</span>
+│   ├── <span class="mod">SpriteAnimator.h / .cpp</span>  <span class="cm">← Subscribe만 설정</span>
+│   └── VelocityController.h / .cpp
+└── <span class="dir">Core/</span>
+    └── <span class="mod">main.cpp</span>              <span class="cm">← AddState() 사용</span>
+    </div>
+  </div>
+</div>
+
+<div class="callout callout-info" style="margin-top:16px;">
+  <strong>핵심 원칙:</strong> <code style="font-family:var(--font-code); font-size:12px;">States/</code> 폴더의 파일들은 오직 <em>데이터를 들고, 변경을 알리는</em> 일만 합니다.
+  <code style="font-family:var(--font-code); font-size:12px;">Callbacks/</code> 폴더는 그 알림에 <em>어떻게 반응할지</em>를 결정합니다.
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════
+     4. Observable State 패턴
+══════════════════════════════════ -->
+<section id="s4">
+<h2><span class="num">4</span> Observable State 패턴</h2>
+
+<h3>클래스 계층도</h3>
+
+<!-- SVG 계층 다이어그램 -->
+<div class="flow-wrap" style="margin-bottom:28px;">
+<svg viewBox="0 0 900 280" width="100%" style="max-width:900px; display:block; margin:0 auto;">
+  <style>
+    .d-box { rx:8; ry:8; fill:#1a1d27; }
+    .d-txt { fill:#e2e8f0; font-size:13px; font-weight:600; font-family:'Segoe UI',sans-serif; }
+    .d-sub { fill:#8892a4; font-size:11px; font-family:'Consolas',monospace; }
+    .d-line { stroke:#2e3352; stroke-width:1.5; fill:none; }
+    .d-arr  { stroke:#4f8ef7; stroke-width:1.5; fill:none; marker-end:url(#arr); }
+    .d-arr2 { stroke:#3ecf8e; stroke-width:1.5; fill:none; marker-end:url(#arr2); }
+  </style>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4f8ef7"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3ecf8e"/>
+    </marker>
+  </defs>
+
+  <!-- State (base) -->
+  <rect x="340" y="10" width="220" height="60" rx="8" fill="#22263a" stroke="#4f8ef7" stroke-width="1.5"/>
+  <text x="450" y="36" text-anchor="middle" class="d-txt" fill="#4f8ef7">State</text>
+  <text x="450" y="54" text-anchor="middle" class="d-sub">pOwner: GameObject*</text>
+
+  <!-- ObservableState -->
+  <rect x="265" y="120" width="370" height="80" rx="8" fill="#22263a" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="450" y="146" text-anchor="middle" class="d-txt" fill="#a78bfa">ObservableState&lt;TEnum&gt;</text>
+  <text x="450" y="163" text-anchor="middle" class="d-sub">Get() / Set() / Subscribe()</text>
+  <text x="450" y="179" text-anchor="middle" class="d-sub">current: TEnum  subscribers: vector&lt;Callback&gt;</text>
+
+  <!-- arrows: State → ObservableState -->
+  <line x1="450" y1="70" x2="450" y2="118" class="d-arr"/>
+
+  <!-- 3 concrete states -->
+  <rect x="30"  y="240" width="200" height="30" rx="6" fill="#22263a" stroke="#3ecf8e" stroke-width="1.5"/>
+  <text x="130" y="260" text-anchor="middle" class="d-txt" fill="#3ecf8e" font-size="12">AttackState</text>
+
+  <rect x="340" y="240" width="220" height="30" rx="6" fill="#22263a" stroke="#3ecf8e" stroke-width="1.5"/>
+  <text x="450" y="260" text-anchor="middle" class="d-txt" fill="#3ecf8e" font-size="12">MovementState</text>
+
+  <rect x="670" y="240" width="200" height="30" rx="6" fill="#22263a" stroke="#3ecf8e" stroke-width="1.5"/>
+  <text x="770" y="260" text-anchor="middle" class="d-txt" fill="#3ecf8e" font-size="12">LifeState</text>
+
+  <!-- arrows: ObservableState → 3 -->
+  <line x1="350" y1="200" x2="200" y2="238" class="d-arr2"/>
+  <line x1="450" y1="200" x2="450" y2="238" class="d-arr2"/>
+  <line x1="550" y1="200" x2="700" y2="238" class="d-arr2"/>
+</svg>
+</div>
+
+<h3 style="margin-bottom:16px;">ObservableState&lt;TEnum&gt; 구현</h3>
+<div class="cols2">
+  <div>
+<pre><span class="cm">// FrameWork/State.h</span>
+<span class="kw">template</span>&lt;<span class="kw">typename</span> <span class="ty">TEnum</span>&gt;
+<span class="kw">class</span> <span class="ty">ObservableState</span> : <span class="kw">public</span> <span class="ty">State</span> {
+<span class="kw">public</span>:
+    <span class="kw">using</span> <span class="ty">Callback</span> =
+      std::function&lt;<span class="kw">void</span>(<span class="ty">TEnum</span> prev, <span class="ty">TEnum</span> next)&gt;;
+
+    <span class="ty">TEnum</span> <span class="fn">Get</span>() <span class="kw">const</span> { <span class="kw">return</span> current; }
+
+    <span class="kw">void</span> <span class="fn">Set</span>(<span class="ty">TEnum</span> next) {
+        <span class="kw">if</span> (current == next) <span class="kw">return</span>;  <span class="cm">// 동일 값 무시</span>
+        <span class="kw">const</span> <span class="ty">TEnum</span> prev = current;
+        current = next;
+        <span class="cm">// 변경 즉시 모든 구독자 통보</span>
+        <span class="kw">for</span> (<span class="kw">auto</span>&amp; cb : subscribers)
+            <span class="fn">cb</span>(prev, next);
+    }
+
+    <span class="kw">void</span> <span class="fn">Subscribe</span>(<span class="ty">Callback</span> cb) {
+        subscribers.<span class="fn">push_back</span>(std::move(cb));
+    }
+
+<span class="kw">protected</span>:
+    <span class="ty">TEnum</span> current{};
+    std::vector&lt;<span class="ty">Callback</span>&gt; subscribers;
+};</pre>
+  </div>
+  <div>
+    <div class="callout callout-good" style="margin-bottom:14px;">
+      <strong>Set()이 하는 일</strong><br>
+      ① 이전 값과 같으면 아무 것도 안 함<br>
+      ② 다르면 current 업데이트<br>
+      ③ 모든 구독자 함수를 순서대로 호출
+    </div>
+    <div class="callout callout-info" style="margin-bottom:14px;">
+      <strong>Subscribe()가 하는 일</strong><br>
+      콜백 함수를 내부 배열에 추가.<br>
+      이후 Set()이 호출될 때마다 자동 실행됨.
+    </div>
+    <div class="callout callout-warn">
+      <strong>구독 해제는 지원하지 않습니다</strong><br>
+      GameObject 수명과 동일하게 State가 살아있으므로,
+      Component 소멸 시 이미 State도 소멸됩니다.
+    </div>
+  </div>
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════
+     5. Callback 흐름
+══════════════════════════════════ -->
+<section id="s5">
+<h2><span class="num">5</span> Callback 흐름 추적</h2>
+
+<h3 style="margin-bottom:16px;">시나리오 A — 플레이어가 Space를 눌러 검 공격</h3>
+
+<div class="cb-flow">
+  <div class="cb-step s1">Space 키 입력</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s1">PlayerControl::Update()</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s2">AttackController::TriggerSword(0.4f)</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s3">AttackState::Set(SwordAttack)</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s4">OnAnimAttack() + OnControlAttack()</div>
+</div>
+
+<div class="cols2" style="margin-bottom:28px;">
+  <div style="font-size:13px; color:var(--text-muted);">
+    <strong style="color:var(--accent-green)">OnAnimAttack</strong>이 받은 콜백:<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">ComputeClipName()</code>으로 현재 상태 조합 평가<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">"sword_attack_down"</code> 결정<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">SpriteAnimator::SwitchToClip()</code> 호출
+  </div>
+  <div style="font-size:13px; color:var(--text-muted);">
+    <strong style="color:var(--accent-purple)">OnControlAttack</strong>이 받은 콜백:<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">isAttackLocked = true</code> 설정<br>
+    → 이후 Update에서 추가 공격 입력 무시<br>
+    → 이동도 제한하는 경우라면 isMovementLocked도
+  </div>
+</div>
+
+<h3 style="margin-bottom:16px;">시나리오 B — 0.4초 후 공격 종료</h3>
+
+<div class="cb-flow">
+  <div class="cb-step s1">0.4초 경과</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s2">AttackController::Update(dt)</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s3">AttackState::Set(NoAttack)</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s4">OnAnimAttack() + OnControlAttack()</div>
+</div>
+
+<div class="cols2" style="margin-bottom:28px;">
+  <div style="font-size:13px; color:var(--text-muted);">
+    <strong style="color:var(--accent-green)">OnAnimAttack</strong> (NoAttack):<br>
+    → 다시 <code style="font-family:var(--font-code); font-size:12px;">ComputeClipName()</code> 평가<br>
+    → 이동 중이면 <code style="font-family:var(--font-code); font-size:12px;">"walk_down"</code> 등으로 복귀<br>
+    → 서있으면 <code style="font-family:var(--font-code); font-size:12px;">"stand_down"</code>
+  </div>
+  <div style="font-size:13px; color:var(--text-muted);">
+    <strong style="color:var(--accent-purple)">OnControlAttack</strong> (NoAttack):<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">isAttackLocked = false</code> 해제<br>
+    → 다음 프레임부터 공격 입력 다시 수락
+  </div>
+</div>
+
+<h3 style="margin-bottom:16px;">시나리오 C — 플레이어 사망</h3>
+
+<div class="cb-flow">
+  <div class="cb-step s1">LifeState::SetDead()</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s3">LifeState::Set(Dead)</div>
+  <div class="cb-arrow">→</div>
+  <div class="cb-step s4">OnAnimLife() + OnControlLife()</div>
+</div>
+
+<div class="cols2">
+  <div style="font-size:13px; color:var(--text-muted);">
+    <strong style="color:var(--accent-green)">OnAnimLife</strong> (Dead):<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">ComputeClipName()</code> → <code style="font-family:var(--font-code); font-size:12px;">"dead"</code> (최우선)<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">SwitchToClip("dead")</code>
+  </div>
+  <div style="font-size:13px; color:var(--text-muted);">
+    <strong style="color:var(--accent-purple)">OnControlLife</strong> (Dead):<br>
+    → <code style="font-family:var(--font-code); font-size:12px;">isMovementLocked = true</code><br>
+    → 플레이어 이동 입력 완전 차단
+  </div>
+</div>
+
+<hr class="divider" style="margin-top:30px;">
+
+<h3 style="margin-bottom:16px;">ComputeClipName 우선순위 로직</h3>
+
+<!-- SVG 우선순위 흐름도 -->
+<div class="flow-wrap">
+<svg viewBox="0 0 840 320" width="100%" style="max-width:840px; display:block; margin:0 auto;">
+<defs>
+  <marker id="fa" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#8892a4"/>
+  </marker>
+  <marker id="fy" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#fbbf24"/>
+  </marker>
+  <marker id="fg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#3ecf8e"/>
+  </marker>
+</defs>
+
+<!-- LifeState Dead? -->
+<rect x="320" y="10" width="200" height="44" rx="8" fill="#22263a" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="420" y="37" text-anchor="middle" fill="#a78bfa" font-size="13" font-family="'Segoe UI',sans-serif" font-weight="600">IsDead() ?</text>
+
+<!-- YES → dead -->
+<line x1="370" y1="54" x2="190" y2="100" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#fy)"/>
+<text x="260" y="82" fill="#fbbf24" font-size="11" font-family="'Segoe UI',sans-serif">Yes</text>
+<rect x="60" y="100" width="260" height="36" rx="7" fill="#22263a" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="190" y="123" text-anchor="middle" fill="#fbbf24" font-size="13" font-family="'Consolas',monospace">return "dead"</text>
+
+<!-- NO → AttackState -->
+<line x1="470" y1="54" x2="470" y2="100" stroke="#8892a4" stroke-width="1.5" marker-end="url(#fa)"/>
+<text x="478" y="82" fill="#8892a4" font-size="11" font-family="'Segoe UI',sans-serif">No</text>
+<rect x="320" y="100" width="300" height="44" rx="8" fill="#22263a" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="470" y="127" text-anchor="middle" fill="#a78bfa" font-size="13" font-family="'Segoe UI',sans-serif" font-weight="600">IsAttacking() ?</text>
+
+<!-- YES → SwordAttack? -->
+<line x1="430" y1="144" x2="190" y2="190" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#fy)"/>
+<text x="280" y="172" fill="#fbbf24" font-size="11" font-family="'Segoe UI',sans-serif">Yes</text>
+<rect x="60" y="190" width="260" height="44" rx="8" fill="#22263a" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="190" y="217" text-anchor="middle" fill="#a78bfa" font-size="13" font-family="'Segoe UI',sans-serif" font-weight="600">SwordAttack ?</text>
+
+<!-- SwordAttack YES → sword_attack_dir -->
+<line x1="145" y1="234" x2="145" y2="280" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#fy)"/>
+<rect x="20" y="280" width="250" height="36" rx="7" fill="#22263a" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="145" y="303" text-anchor="middle" fill="#fbbf24" font-size="12" font-family="'Consolas',monospace">"sword_attack_" + dir</text>
+
+<!-- SwordAttack NO → GetStateName -->
+<line x1="300" y1="212" x2="400" y2="280" stroke="#8892a4" stroke-width="1.5" marker-end="url(#fa)"/>
+<rect x="290" y="280" width="220" height="36" rx="7" fill="#22263a" stroke="#8892a4" stroke-width="1.5"/>
+<text x="400" y="303" text-anchor="middle" fill="#8892a4" font-size="12" font-family="'Consolas',monospace">attack.GetStateName()</text>
+
+<!-- AttackState NO → MovementState -->
+<line x1="620" y1="144" x2="620" y2="190" stroke="#8892a4" stroke-width="1.5" marker-end="url(#fa)"/>
+<text x="630" y="172" fill="#8892a4" font-size="11" font-family="'Segoe UI',sans-serif">No</text>
+<rect x="530" y="190" width="180" height="44" rx="8" fill="#22263a" stroke="#3ecf8e" stroke-width="1.5"/>
+<text x="620" y="207" text-anchor="middle" fill="#3ecf8e" font-size="12" font-family="'Segoe UI',sans-serif" font-weight="600">movement.</text>
+<text x="620" y="224" text-anchor="middle" fill="#3ecf8e" font-size="12" font-family="'Consolas',monospace">GetStateName()</text>
+<text x="420" y="198" fill="#3ecf8e" font-size="10" font-family="'Segoe UI',sans-serif">"walk_down" 등</text>
+</svg>
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════
+     6. 레이어 역할 정리
+══════════════════════════════════ -->
+<section id="s6">
+<h2><span class="num">6</span> 각 레이어 역할 정리</h2>
+
+<table class="role-table">
+  <thead>
+    <tr>
+      <th>폴더/파일</th>
+      <th>역할</th>
+      <th>Update() 있음?</th>
+      <th>State 읽기</th>
+      <th>State 쓰기</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="background:rgba(79,142,247,.04);">
+      <td><code>States/</code></td>
+      <td>열거형 값을 보유하고, 변경 시 구독자에게 통보</td>
+      <td style="color:var(--text-muted)">없음</td>
+      <td style="color:var(--accent-green)">자기 자신만</td>
+      <td style="color:var(--accent-green)">Set() 내부</td>
+    </tr>
+    <tr style="background:rgba(167,139,250,.04);">
+      <td><code>Callbacks/StateCallbacks</code></td>
+      <td>State 변경 시 어떤 Component 메서드를 호출할지 결정</td>
+      <td style="color:var(--text-muted)">없음</td>
+      <td style="color:var(--accent-yellow)">ComputeClipName에서 읽음</td>
+      <td style="color:var(--text-muted)">안 씀</td>
+    </tr>
+    <tr style="background:rgba(251,146,60,.04);">
+      <td><code>AttackController</code></td>
+      <td>공격 타이머 관리, Set(SwordAttack) / Set(NoAttack) 호출</td>
+      <td style="color:var(--accent-green)">있음 (타이머 감소)</td>
+      <td style="color:var(--text-muted)">안 읽음</td>
+      <td style="color:var(--accent-green)">Set() 호출</td>
+    </tr>
+    <tr style="background:rgba(62,207,142,.04);">
+      <td><code>PlayerControl</code></td>
+      <td>입력 처리 → MovementState 업데이트, 공격 트리거</td>
+      <td style="color:var(--accent-green)">있음 (입력 폴링)</td>
+      <td style="color:var(--accent-yellow)">isMovementLocked / isAttackLocked 플래그만</td>
+      <td style="color:var(--accent-green)">MovementState.Set()</td>
+    </tr>
+    <tr style="background:rgba(62,207,142,.04);">
+      <td><code>SpriteAnimator</code></td>
+      <td>클립 재생, 프레임 전진</td>
+      <td style="color:var(--accent-green)">있음 (프레임 타이머)</td>
+      <td style="color:var(--text-muted)">안 읽음</td>
+      <td style="color:var(--text-muted)">안 씀</td>
+    </tr>
+    <tr>
+      <td><code>Core/main.cpp</code></td>
+      <td>오브젝트 조립, AddState / AddComponent 순서 관리</td>
+      <td style="color:var(--text-muted)">없음</td>
+      <td style="color:var(--text-muted)">없음</td>
+      <td style="color:var(--text-muted)">없음</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info" style="margin-top:20px;">
+  <strong>등록 순서가 중요합니다 (main.cpp)</strong><br>
+  States → AttackController → PlayerControl → VelocityController → SpriteAnimator → MeshRenderer<br>
+  Start()에서 GetState&lt;T&gt;()를 사용하기 때문에 State가 먼저 등록되어 있어야 합니다.
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════
+     7. 코드 비교
+══════════════════════════════════ -->
+<section id="s7">
+<h2><span class="num">7</span> 코드 비교 — Before vs After</h2>
+
+<!-- 7-1 SpriteAnimator Start -->
+<h3 style="margin-bottom:12px;">① SpriteAnimator::Start() — 클립 초기화 방식</h3>
+<div class="cols2">
+  <div>
+    <div class="badge badge-before">Before — 직접 캐시 후 폴링</div>
+<pre><span class="kw">void</span> <span class="ty">SpriteAnimator</span>::<span class="fn">Start</span>() {
+    <span class="cm">// State 포인터를 직접 캐시</span>
+    movState = pOwner-&gt;<span class="fn">GetComponent</span>&lt;<span class="ty">MovementState</span>&gt;();
+    atkState = pOwner-&gt;<span class="fn">GetComponent</span>&lt;<span class="ty">AttackState</span>&gt;();
+    lifState = pOwner-&gt;<span class="fn">GetComponent</span>&lt;<span class="ty">LifeState</span>&gt;();
+    <span class="cm">// Update()에서 매 프레임 IsDead() 등을 호출</span>
+}</pre>
+  </div>
+  <div>
+    <div class="badge badge-after">After — Subscribe로 등록</div>
+<pre><span class="kw">void</span> <span class="ty">SpriteAnimator</span>::<span class="fn">Start</span>() {
+    <span class="kw">auto</span> mov = pOwner-&gt;<span class="fn">GetState</span>&lt;<span class="ty">MovementState</span>&gt;();
+    mov-&gt;<span class="fn">Subscribe</span>([<span class="kw">this</span>](<span class="ty">MovementStateType</span> p, <span class="ty">MovementStateType</span> n){
+        <span class="ty">StateCallbacks</span>::<span class="fn">OnAnimMovement</span>(<span class="kw">this</span>, p, n);
+    });
+    <span class="cm">// Attack, Life도 동일하게 구독</span>
+    <span class="cm">// 초기 클립 동기화</span>
+    <span class="ty">StateCallbacks</span>::<span class="fn">ReevaluateAnimClip</span>(<span class="kw">this</span>);
+}</pre>
+  </div>
+</div>
+
+<div style="height:24px;"></div>
+
+<!-- 7-2 PlayerControl Update -->
+<h3 style="margin-bottom:12px;">② PlayerControl::Update() — 죽음 판정</h3>
+<div class="cols2">
+  <div>
+    <div class="badge badge-before">Before — 매 프레임 State 폴링</div>
+<pre><span class="kw">void</span> <span class="ty">PlayerControl</span>::<span class="fn">Update</span>(<span class="kw">float</span> dt) {
+    <span class="cm">// LifeState 직접 호출</span>
+    <span class="kw">if</span> (lifeState-&gt;<span class="fn">IsDead</span>()) {
+        pOwner-&gt;velocity = { <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span> };
+        <span class="kw">return</span>;
+    }
+    <span class="cm">// AttackState 직접 호출</span>
+    <span class="kw">if</span> (attackState-&gt;<span class="fn">IsAttacking</span>()) <span class="kw">return</span>;
+    <span class="cm">// ... 입력 처리 ...</span>
+}</pre>
+  </div>
+  <div>
+    <div class="badge badge-after">After — 플래그만 확인</div>
+<pre><span class="kw">void</span> <span class="ty">PlayerControl</span>::<span class="fn">Update</span>(<span class="kw">float</span> dt) {
+    <span class="cm">// 콜백이 미리 세팅한 플래그만 읽음</span>
+    <span class="kw">if</span> (isMovementLocked) {
+        pOwner-&gt;velocity = { <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span> };
+        <span class="kw">return</span>;
+    }
+    <span class="kw">if</span> (isAttackLocked) <span class="kw">return</span>;
+    <span class="cm">// ... 입력 처리 ...</span>
+}</pre>
+  </div>
+</div>
+
+<div style="height:24px;"></div>
+
+<!-- 7-3 main.cpp -->
+<h3 style="margin-bottom:12px;">③ main.cpp — State 등록 방식</h3>
+<div class="cols2">
+  <div>
+    <div class="badge badge-before">Before</div>
+<pre><span class="cm">// State를 Component처럼 등록</span>
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">AttackState</span>());
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">LifeState</span>());
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">MovementState</span>());
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">PlayerControl</span>(<span class="num">0</span>));
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">SpriteAnimator</span>(&amp;mesh));</pre>
+  </div>
+  <div>
+    <div class="badge badge-after">After</div>
+<pre><span class="cm">// State는 별도 컬렉션에 등록</span>
+player-&gt;<span class="fn">AddState</span>(<span class="kw">new</span> <span class="ty">AttackState</span>());
+player-&gt;<span class="fn">AddState</span>(<span class="kw">new</span> <span class="ty">LifeState</span>());
+player-&gt;<span class="fn">AddState</span>(<span class="kw">new</span> <span class="ty">MovementState</span>());
+<span class="cm">// AttackController가 타이머 로직 담당</span>
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">AttackController</span>());
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">PlayerControl</span>(<span class="num">0</span>));
+player-&gt;<span class="fn">AddComponent</span>(<span class="kw">new</span> <span class="ty">SpriteAnimator</span>(&amp;mesh));</pre>
+  </div>
+</div>
+</section>
+
+
+<!-- ══════════════════════════════════
+     8. 새 파일 한눈에 보기
+══════════════════════════════════ -->
+<section id="s8">
+<h2><span class="num">8</span> 새 파일 한눈에 보기</h2>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:16px;">
+
+  <!-- State.h -->
+  <div class="card">
+    <div class="badge badge-new">NEW</div>
+    <div class="card-title" style="color:var(--accent-blue)">FrameWork/State.h</div>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">
+      모든 State의 공통 기반. <code style="font-family:var(--font-code); font-size:12px;">ObservableState&lt;TEnum&gt;</code> 템플릿 정의.
+    </p>
+    <ul style="font-size:13px; color:var(--text-muted); padding-left:16px;">
+      <li>State (base): pOwner만 들고 있음</li>
+      <li>ObservableState: Get/Set/Subscribe</li>
+    </ul>
+  </div>
+
+  <!-- AttackController -->
+  <div class="card">
+    <div class="badge badge-new">NEW</div>
+    <div class="card-title" style="color:var(--accent-orange)">Components/AttackController.h/.cpp</div>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">
+      기존 AttackState에 있던 타이머 로직을 분리. Component로서 Update()를 가짐.
+    </p>
+    <ul style="font-size:13px; color:var(--text-muted); padding-left:16px;">
+      <li>TriggerSword(dur) / TriggerMagic(dur)</li>
+      <li>Update(): remainingTime 감소 → NoAttack</li>
+    </ul>
+  </div>
+
+  <!-- StateCallbacks -->
+  <div class="card">
+    <div class="badge badge-new">NEW</div>
+    <div class="card-title" style="color:var(--accent-purple)">Callbacks/StateCallbacks.h/.cpp</div>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">
+      State 변경 시 어떤 Component 메서드를 호출할지 결정하는 반응 함수 모음.
+    </p>
+    <ul style="font-size:13px; color:var(--text-muted); padding-left:16px;">
+      <li>OnAnimMovement / OnAnimAttack / OnAnimLife</li>
+      <li>OnControlLife / OnControlAttack</li>
+      <li>ReevaluateAnimClip (초기 동기화)</li>
+    </ul>
+  </div>
+
+  <!-- MovementState -->
+  <div class="card">
+    <div class="badge badge-new">NEW (이동)</div>
+    <div class="card-title" style="color:var(--accent-green)">States/MovementState.h/.cpp</div>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">
+      Components/에서 States/로 이동. Component 상속 제거.
+    </p>
+    <ul style="font-size:13px; color:var(--text-muted); padding-left:16px;">
+      <li>SetFromDirectionInput() 유지</li>
+      <li>GetStateName() / GetDirectionName()</li>
+      <li>Update() 없음</li>
+    </ul>
+  </div>
+
+  <!-- AttackState -->
+  <div class="card">
+    <div class="badge badge-new">NEW (이동)</div>
+    <div class="card-title" style="color:var(--accent-green)">States/AttackState.h/.cpp</div>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">
+      타이머 로직 제거됨 (AttackController로 이전). 데이터만 남음.
+    </p>
+    <ul style="font-size:13px; color:var(--text-muted); padding-left:16px;">
+      <li>IsAttacking() / GetStateName()</li>
+      <li>remainingTime, TriggerSwordAttack 삭제</li>
+    </ul>
+  </div>
+
+  <!-- LifeState -->
+  <div class="card">
+    <div class="badge badge-new">NEW (이동)</div>
+    <div class="card-title" style="color:var(--accent-green)">States/LifeState.h/.cpp</div>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:10px;">
+      SetAlive() / SetDead() 가 내부적으로 base Set()을 호출.
+    </p>
+    <ul style="font-size:13px; color:var(--text-muted); padding-left:16px;">
+      <li>IsAlive() / IsDead() 유지</li>
+      <li>GetStateName() / ToString() (public)</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="callout callout-good" style="margin-top:24px;">
+  <strong>변경 규칙 요약:</strong>
+  새로운 State 타입을 추가하려면 <code style="font-family:var(--font-code); font-size:12px;">ObservableState&lt;MyEnum&gt;</code>를 상속하는 클래스를 <code style="font-family:var(--font-code); font-size:12px;">States/</code>에 추가하고,
+  반응 함수를 <code style="font-family:var(--font-code); font-size:12px;">Callbacks/StateCallbacks.cpp</code>에 추가한 뒤, Start()에서 Subscribe하면 됩니다.
+  Component의 Update() 안에 조건문을 추가할 필요 없습니다.
+</div>
+</section>
+
+<!-- footer -->
+<div style="text-align:center; color:var(--text-muted); font-size:12px; padding-top:40px; border-top:1px solid var(--border);">
+  custom-game-engine — State System Refactoring Guide &nbsp;·&nbsp; 2025
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

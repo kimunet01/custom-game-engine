@@ -91,6 +91,24 @@ void GameLoop::Update()
 
     // 컴포넌트 갱신 후의 위치를 기준으로 충돌 검사와 반응을 처리한다.
     collisionSystem.Update(gameWorld);
+
+    // AttackController가 큐에 쌓은 공격을 hitbox 판정하고 데미지를 전달한다.
+    combatSystem.Update(gameWorld);
+
+    // 프레임 끝: pendingDestroy로 표시된 오브젝트를 정리한다.
+    // 이 스윕은 단 한 곳(여기)에서만 일어나야 한다. 다른 곳에서 임의로 delete하면
+    // Component가 캐싱한 owner 포인터, 콜백 람다 캡처가 dangling 상태가 된다.
+    for (auto it = gameWorld.begin(); it != gameWorld.end(); ) {
+        GameObject* object = *it;
+        if (object != nullptr && object->pendingDestroy) {
+            Logger::Info("GameLoop destroying pending object. name=%s", object->name.c_str());
+            delete object;
+            it = gameWorld.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 }
 
 // Render 단계:

@@ -1,4 +1,13 @@
-#pragma once
+ï»¿#pragma once
+
+/*
+ * EnvironmentRenderer.h
+ * Renders the stage floor and pushes per-frame "environment" data
+ * (time / isBossStage / hitPosition) to PS register b1 in TextureShader.hlsl.
+ *
+ * Used by the StageTerrain GameObject. The mesh and material are owned by
+ * main.cpp; this component only manages the GPU constant buffers it creates.
+ */
 
 #include <vector>
 #include "Component.h"
@@ -7,39 +16,40 @@
 #include "Resources/Mesh.h"
 #include "Resources/Material.h"
 
-// ÇÈ¼¿ ¼ÎÀÌ´õ b1 ½½·Ô¿¡ ¸ÅÇÎÇÒ ÁöÇü ¿¬Ãâ Àü¿ë »ó¼ö ¹öÆÛ ±¸Á¶Ã¼
-// DirectX11 ±¸Á¶»ó 16¹ÙÀÌÆ® Á¤·Ä Å©±â¸¦ ¸¸Á·ÇØ¾ß ÇÏ¹Ç·Î ÆĞµùÀ» Ãß°¡ÇÕ´Ï´Ù.
+// Layout of the b1 (PS) constant buffer used by TextureShader.hlsl for the
+// boss-stage tone and bullet-hit flash effects. Must stay 16-byte aligned for
+// D3D11, hence the explicit padding.
 struct EnvironmentBufferType {
-    float time;                    // ¹Ù´Ú ÀÏ··°Å¸²¿ë ´©Àû ½Ã°£
-    int isBossStage;               // º¸½º ½ºÅ×ÀÌÁö È°¼ºÈ­ ¿©ºÎ
-    DirectX::XMFLOAT2 padding;     // 16¹ÙÀÌÆ® Á¤·ÄÀ» À§ÇÑ ÆĞµù (8¹ÙÀÌÆ®)
-    DirectX::XMFLOAT4 hitPosition; // ÅºÈ¯ÀÌ º®¿¡ Ãæµ¹ÇÑ ¿ùµå Á¤¹Ğ ÁÂÇ¥ (16¹ÙÀÌÆ®)
+    float time;                    // Seconds since the boss stage started (drives sin-based flicker)
+    int isBossStage;               // 0 = normal, 1 = boss-stage tone enabled
+    DirectX::XMFLOAT2 padding;     // 8-byte pad to keep the next field 16-byte aligned
+    DirectX::XMFLOAT4 hitPosition; // World-space hit position (currently unused)
 };
 
 class EnvironmentRenderer : public Component {
 public:
-    // ÁöÇü ·»´õ·¯°¡ ÂüÁ¶ÇÒ ¸Ş½¬ ¹× ÀçÁú ÀÚ¿ø (¼ÒÀ¯±ÇÀº ¿ÜºÎ main.cpp Ãø¿¡ ÀÖÀ½)
+    // External resources â€” owned by main.cpp, not by this component.
     Mesh* pFloorMesh = nullptr;
     Material* pMaterial = nullptr;
 
-    // GPU ÀÚ¿ø °ü¸®¸¦ À§ÇÑ »ó¼ö ¹öÆÛ Æ÷ÀÎÅÍµé
-    ID3D11Buffer* pMatrixBuffer = nullptr; // b0: ¿ùµå º¯È¯ Çà·Ä ¹öÆÛ
-    ID3D11Buffer* pEnvBuffer = nullptr;    // b1: ÁöÇü È¯°æ ¿¬Ãâ µ¥ÀÌÅÍ ¹öÆÛ
+    // GPU constant buffers â€” owned and released by this component.
+    ID3D11Buffer* pMatrixBuffer = nullptr; // b0: world/view/proj matrix
+    ID3D11Buffer* pEnvBuffer = nullptr;    // b1: per-stage environment data
 
     explicit EnvironmentRenderer(Mesh* mesh, Material* mat);
     virtual ~EnvironmentRenderer();
 
-    // Component ±âÀú Å¬·¡½º ¼ö¸íÁÖ±â °¡»ó ÇÔ¼ö ¿À¹ö¶óÀÌµå
     void Start() override;
     void Render() override;
 
-    // TerrainStateController°¡ ÇÁ·¹ÀÓ ·çÇÁ(Update/Trigger/Report)¿¡¼­ ½Ç½Ã°£À¸·Î È£ÃâÇÒ Á¦¾î ÀÎÅÍÆäÀÌ½º
+    // Driven by TerrainStateController (Update / TriggerBossAppearance / ReportWallCollision).
     void UpdateShaderTime(float time);
     void SetBossThemeActive(bool active);
     void EnableFlashEffect(const Vec3& hitPos);
     void DisableFlashEffect();
 
 private:
-    // ½Ç½Ã°£À¸·Î °ªÀÌ º¯°æµÇ¾î GPU »ó¼ö ¹öÆÛ·Î Àü¼ÛµÉ È£½ºÆ® Ãø µ¥ÀÌÅÍ ¹öÆÛ
+    // CPU mirror of the b1 buffer. Mutated by the Set/Update/Enable/Disable
+    // calls above and uploaded to GPU every Render().
     EnvironmentBufferType m_envData;
 };

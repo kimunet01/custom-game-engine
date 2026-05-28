@@ -25,6 +25,22 @@ struct Vec3 {
     float z = 0.0f;
 };
 
+// 셰이더의 tint 같은 4채널 색상 값을 표현하기 위한 단순 구조체.
+struct Vec4 {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float w = 0.0f;
+};
+
+// 공격 판정과 충돌 알림에서 어느 진영의 오브젝트인지 구분하는 식별자.
+// 같은 팀끼리는 공격 hitbox 검사에서 제외된다.
+enum class TeamId {
+    Neutral,
+    Player,
+    Enemy
+};
+
 // WndProc에서 받아온 키 입력 상태를 프레임 사이에 보관하는 캐시.
 // PlayerControl은 OS에 직접 물어보지 않고 이 값을 읽는다.
 struct KeyState {

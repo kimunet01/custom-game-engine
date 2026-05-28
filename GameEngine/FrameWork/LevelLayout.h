@@ -1,18 +1,28 @@
-#pragma once
+ï»¿#pragma once
+
+/*
+ * LevelLayout.h
+ * Static stage geometry (walls/pillars/play-area bounds) attached as a Component
+ * to a single stage object (StageTerrain in main.cpp).
+ *
+ * The data is layout-only. Per-frame collision resolution against moving
+ * characters is driven by CollisionSystem, which looks up this component once
+ * and calls the public Resolve* helpers per frame.
+ */
 
 #include "Component.h"
-#include "EngineTypes.h" 
+#include "EngineTypes.h"
 #include <vector>
 
 class GameObject;
 
-// 1. ¿øÇü Ãæµ¹ ±¸Á¶Ã¼
+// Circular obstacle (currently unused â€” m_pillars is left empty by design).
 struct PillarObstacle {
     Vec3 position;
     float radius;
 };
 
-// 2. »ç°¢Çü Ãæµ¹ ±¸Á¶Ã¼
+// Axis-aligned rectangular obstacle (walls, boxes, water surfaces, etc).
 struct LayoutRectObstacle {
     float minX;
     float maxX;
@@ -25,7 +35,10 @@ public:
     explicit LevelLayout();
     virtual ~LevelLayout() = default;
 
+    // Populates m_wallBoxes with the dungeon layout used by the sample stage.
     void Start() override;
+    // Intentionally empty: this component owns static data only. Collision against
+    // movers is driven externally by CollisionSystem.
     void Update(float dt) override;
 
     float GetMinX() const { return m_minX; }
@@ -36,9 +49,14 @@ public:
     const std::vector<PillarObstacle>& GetPillars() const { return m_pillars; }
     const std::vector<LayoutRectObstacle>& GetWallBoxes() const { return m_wallBoxes; }
 
+    // Clamp the object's XY position to the play-area bounds.
     void ClampGameObjectToBounds(GameObject* obj);
+    // Push the object out of any pillar it currently overlaps (no-op while m_pillars is empty).
     void ResolvePillarCollision(GameObject* obj);
+    // Push the object out of any rectangular wall box it currently overlaps.
+    // Uses obj->collisionRadius so larger objects (e.g. Boss) are handled correctly.
     void ResolveBoxCollision(GameObject* obj);
+
 private:
     float m_minX;
     float m_maxX;
@@ -47,5 +65,4 @@ private:
 
     std::vector<PillarObstacle> m_pillars;
     std::vector<LayoutRectObstacle> m_wallBoxes;
-
 };

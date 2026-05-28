@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Components">
-      <UniqueIdentifier>{a4bfdc14-322f-4b51-8c01-288797f39562}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="States">
-      <UniqueIdentifier>{6f3d9b18-2a4f-4c63-9e7a-1f8a3c5b7e21}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Callbacks">
-      <UniqueIdentifier>{8d52a4c7-1b3f-4e85-a072-9c4d6e2b5f48}</UniqueIdentifier>
+    <Filter Include="Core">
+      <UniqueIdentifier>{44f3460a-8679-4431-a6b6-3d167f27e0c3}</UniqueIdentifier>
     </Filter>
     <Filter Include="FrameWork">
       <UniqueIdentifier>{ba504ac7-fd0d-4a82-a75c-07c8cf9c9c9c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Callbacks">
+      <UniqueIdentifier>{8d52a4c7-1b3f-4e85-a072-9c4d6e2b5f48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="States">
+      <UniqueIdentifier>{6f3d9b18-2a4f-4c63-9e7a-1f8a3c5b7e21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components">
+      <UniqueIdentifier>{a4bfdc14-322f-4b51-8c01-288797f39562}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{ec0e2628-84a7-4b91-915f-93a185bcaffc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core">
-      <UniqueIdentifier>{44f3460a-8679-4431-a6b6-3d167f27e0c3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common\Resources">
       <UniqueIdentifier>{53507976-acf4-45ff-9b2d-af2fdef3b210}</UniqueIdentifier>
@@ -33,28 +33,60 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <!-- Core -->
     <ClCompile Include="Core\main.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="FrameWork\Component.cpp">
-      <Filter>FrameWork</Filter>
-    </ClCompile>
+    <!-- FrameWork (알파벳 순) -->
     <ClCompile Include="FrameWork\CollisionSystem.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="FrameWork\GameObject.cpp">
+    <ClCompile Include="FrameWork\CombatSystem.cpp">
+      <Filter>FrameWork</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameWork\Component.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
     <ClCompile Include="FrameWork\GameLoop.cpp">
       <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="Common\D3D11ResourceHandler.cpp">
-      <Filter>Common</Filter>
+    <ClCompile Include="FrameWork\GameObject.cpp">
+      <Filter>FrameWork</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Win32Handler.cpp">
-      <Filter>Common</Filter>
+    <ClCompile Include="FrameWork\LevelLayout.cpp">
+      <Filter>FrameWork</Filter>
     </ClCompile>
+    <!-- Callbacks -->
+    <ClCompile Include="Callbacks\StateCallbacks.cpp">
+      <Filter>Callbacks</Filter>
+    </ClCompile>
+    <!-- States (알파벳 순) -->
+    <ClCompile Include="States\AttackState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <ClCompile Include="States\HealthState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <ClCompile Include="States\LifeState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <ClCompile Include="States\MovementState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
+    <!-- Components (알파벳 순) -->
     <ClCompile Include="Components\AttackController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\DeathTimer.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\EnvironmentRenderer.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\HealthController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\HitReactionController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
     <ClCompile Include="Components\MeshRenderer.cpp">
@@ -66,20 +98,25 @@
     <ClCompile Include="Components\SpriteAnimator.cpp">
       <Filter>Components</Filter>
     </ClCompile>
+    <ClCompile Include="Components\TerrainStateController.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
     <ClCompile Include="Components\VelocityController.cpp">
       <Filter>Components</Filter>
     </ClCompile>
-    <ClCompile Include="Callbacks\StateCallbacks.cpp">
-      <Filter>Callbacks</Filter>
+    <!-- Common (알파벳 순) -->
+    <ClCompile Include="Common\D3D11ResourceHandler.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="States\AttackState.cpp">
-      <Filter>States</Filter>
+    <ClCompile Include="Common\Logger.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="States\LifeState.cpp">
-      <Filter>States</Filter>
+    <ClCompile Include="Common\Win32Handler.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="States\MovementState.cpp">
-      <Filter>States</Filter>
+    <!-- Common\Resources -->
+    <ClCompile Include="Common\Resources\Material.cpp">
+      <Filter>Common\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Common\Resources\Mesh.cpp">
       <Filter>Common\Resources</Filter>
@@ -87,54 +124,68 @@
     <ClCompile Include="Common\Resources\ShaderSet.cpp">
       <Filter>Common\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Resources\Material.cpp">
-      <Filter>Common\Resources</Filter>
-    </ClCompile>
+    <!-- Common\Resources\Materials -->
     <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp">
       <Filter>Common\Resources\Materials</Filter>
     </ClCompile>
     <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp">
       <Filter>Common\Resources\Materials</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Logger.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="Components\TerrainStateController.cpp" />
-    <ClCompile Include="FrameWork\LevelLayout.cpp" />
-    <ClCompile Include="Components\EnvironmentRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\D3D11ResourceHandler.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\EngineTypes.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Utils.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameWork\Component.h">
-      <Filter>FrameWork</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameWork\State.h">
-      <Filter>FrameWork</Filter>
-    </ClInclude>
-    <ClInclude Include="Callbacks\StateCallbacks.h">
-      <Filter>Callbacks</Filter>
-    </ClInclude>
+    <!-- FrameWork (알파벳 순) -->
     <ClInclude Include="FrameWork\CollisionSystem.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
-    <ClInclude Include="FrameWork\GameObject.h">
+    <ClInclude Include="FrameWork\CombatSystem.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameWork\Component.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
     <ClInclude Include="FrameWork\GameLoop.h">
       <Filter>FrameWork</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Win32Handler.h">
-      <Filter>Common</Filter>
+    <ClInclude Include="FrameWork\GameObject.h">
+      <Filter>FrameWork</Filter>
     </ClInclude>
+    <ClInclude Include="FrameWork\LevelLayout.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameWork\State.h">
+      <Filter>FrameWork</Filter>
+    </ClInclude>
+    <!-- Callbacks -->
+    <ClInclude Include="Callbacks\StateCallbacks.h">
+      <Filter>Callbacks</Filter>
+    </ClInclude>
+    <!-- States (알파벳 순) -->
+    <ClInclude Include="States\AttackState.h">
+      <Filter>States</Filter>
+    </ClInclude>
+    <ClInclude Include="States\HealthState.h">
+      <Filter>States</Filter>
+    </ClInclude>
+    <ClInclude Include="States\LifeState.h">
+      <Filter>States</Filter>
+    </ClInclude>
+    <ClInclude Include="States\MovementState.h">
+      <Filter>States</Filter>
+    </ClInclude>
+    <!-- Components (알파벳 순) -->
     <ClInclude Include="Components\AttackController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\DeathTimer.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\EnvironmentRenderer.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\HealthController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\HitReactionController.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="Components\MeshRenderer.h">
@@ -146,17 +197,31 @@
     <ClInclude Include="Components\SpriteAnimator.h">
       <Filter>Components</Filter>
     </ClInclude>
+    <ClInclude Include="Components\TerrainStateController.h">
+      <Filter>Components</Filter>
+    </ClInclude>
     <ClInclude Include="Components\VelocityController.h">
       <Filter>Components</Filter>
     </ClInclude>
-    <ClInclude Include="States\AttackState.h">
-      <Filter>States</Filter>
+    <!-- Common (알파벳 순) -->
+    <ClInclude Include="Common\D3D11ResourceHandler.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="States\LifeState.h">
-      <Filter>States</Filter>
+    <ClInclude Include="Common\EngineTypes.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="States\MovementState.h">
-      <Filter>States</Filter>
+    <ClInclude Include="Common\Logger.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Utils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Win32Handler.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <!-- Common\Resources -->
+    <ClInclude Include="Common\Resources\Material.h">
+      <Filter>Common\Resources</Filter>
     </ClInclude>
     <ClInclude Include="Common\Resources\Mesh.h">
       <Filter>Common\Resources</Filter>
@@ -164,28 +229,15 @@
     <ClInclude Include="Common\Resources\ShaderSet.h">
       <Filter>Common\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Resources\Material.h">
-      <Filter>Common\Resources</Filter>
-    </ClInclude>
+    <!-- Common\Resources\Materials -->
     <ClInclude Include="Common\Resources\Materials\ColorMaterial.h">
       <Filter>Common\Resources\Materials</Filter>
     </ClInclude>
     <ClInclude Include="Common\Resources\Materials\TextureMaterial.h">
       <Filter>Common\Resources\Materials</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Logger.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="FrameWork\LevelLayout.h" />
-    <ClInclude Include="Components\EnvironmentRenderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="assets\chmov.png">
-      <Filter>assets</Filter>
-    </Image>
-    <Image Include="assets\gold.bmp">
-      <Filter>assets</Filter>
-    </Image>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl">
       <Filter>Common\Resources\Shaders</Filter>
     </None>
@@ -194,9 +246,14 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="UML.cd" />
-    <None Include="Components\TerrainStateController.h">
-      <Filter>Components</Filter>
-    </None>
+    <Image Include="assets\chmov.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="assets\Dungeon2.png">
+      <Filter>assets</Filter>
+    </Image>
+    <Image Include="assets\gold.bmp">
+      <Filter>assets</Filter>
+    </Image>
   </ItemGroup>
 </Project>
