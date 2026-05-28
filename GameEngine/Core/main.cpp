@@ -1,4 +1,4 @@
-﻿/*
+/*
  * main.cpp
  * Entry point and sample scene assembly.
  */
@@ -19,10 +19,14 @@
 #include "Logger.h"
 #include "MeshRenderer.h"
 #include "PlayerControl.h"
+#include "LevelLayout.h"        
+#include "EnvironmentRenderer.h"    
+#include "TerrainStateController.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
 #include "SpriteAnimator.h"
 #include "VelocityController.h"
+
 #include "Win32Handler.h"
 
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
@@ -73,7 +77,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     TextureMaterial* playerMaterial = new TextureMaterial(textureShaders, L"assets\\chmov.png");
 
     GameLoop loop;
-    loop.collisionSystem.SetBounds(-0.85f, 0.85f, -0.65f, 0.65f);
+    loop.collisionSystem.SetBounds(-0.85f, 0.87f, -0.86f, 0.65f);
+
+    TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
+    GameObject* stageTerrain = new GameObject("StageTerrain");
+    stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
+    stageTerrain->AddComponent(new LevelLayout());
+    Mesh* floorMesh = new Mesh(CreateSpriteQuadMesh(3.12f, 2.925f, 0.0f, 0.0f, 1.0f, 1.0f));
+    floorMesh->createVertexBuffer();
+    EnvironmentRenderer* envRenderer = new EnvironmentRenderer(floorMesh, dungeonMaterial);
+    stageTerrain->AddComponent(envRenderer);
+    stageTerrain->AddComponent(new TerrainStateController());
+    loop.AddGameObject(stageTerrain);
 
     GameObject* player = new GameObject("Player");
     // State는 Component가 아닌 데이터 단위. GameObject의 states 컬렉션에 등록한다.
@@ -102,6 +117,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     player->AddComponent(animator);
     player->AddComponent(new MeshRenderer({ &playerMesh }, playerMaterial));
     loop.AddGameObject(player);
+
+
 
     loop.Run();
 
