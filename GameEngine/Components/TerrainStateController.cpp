@@ -1,7 +1,7 @@
-#include "TerrainStateController.h"
+ï»¿#include "TerrainStateController.h"
 #include "GameObject.h"
-#include "LevelLayout.h"         
-#include "EnvironmentRenderer.h" 
+#include "LevelLayout.h"
+#include "EnvironmentRenderer.h"
 #include "Logger.h"
 
 TerrainStateController::TerrainStateController()
@@ -17,46 +17,47 @@ void TerrainStateController::Start()
 {
     Component::Start();
 
-    // GameObject(¿¹: ÁöÇü ¿ÀºêÁ§Æ®)·ÎºÎÅÍ ÇÏºÎ ºÎÇ°µéÀ» °¡Á®¿Â´Ù.
     if (pOwner != nullptr)
     {
         m_levelLayout = pOwner->GetComponent<LevelLayout>();
         m_envRenderer = pOwner->GetComponent<EnvironmentRenderer>();
 
         if (m_levelLayout == nullptr) {
-            Logger::Error("TerrainStateController: LevelLayout ºÎÇ°À» Ã£À» ¼ö ¾ø½À´Ï´Ù!");
+            Logger::Error("TerrainStateController: LevelLayout sibling not found on owner=%s",
+                          pOwner->name.c_str());
         }
         if (m_envRenderer == nullptr) {
-            Logger::Error("TerrainStateController: EnvironmentRenderer ºÎÇ°À» Ã£À» ¼ö ¾ø½À´Ï´Ù!");
+            Logger::Error("TerrainStateController: EnvironmentRenderer sibling not found on owner=%s",
+                          pOwner->name.c_str());
         }
     }
 }
 
 void TerrainStateController::Update(float dt)
 {
-    // 1. °ÔÀÓ ½ÃÀÛ ÈÄ Èå¸¥ ½Ç½Ã°£(DeltaTime)À» ¸Å ÇÁ·¹ÀÓ ´©Àû
+    // 1) Accumulate stage time.
     m_stageElapsedTime += dt;
 
-    // 2. [Á¶°Ç Ã¼Å©] 5ÃÊ°¡ Áö³µ°í, ¾ÆÁ÷ º¸½º ½ºÅ×ÀÌÁö »óÅÂ°¡ ¾Æ´Ï¶ó¸é?
+    // 2) Auto-trigger the boss stage after 5 seconds.
+    //    TODO: replace with a LifeState/spawn-event hook so the tone change
+    //    aligns with the actual Boss GameObject lifecycle.
     if (m_stageElapsedTime >= 5.0f && !m_isBossStage)
     {
-        // ÀÌ¹Ì ±â°¡ ¸·È÷°Ô ¸¸µé¾îµÐ º¸½º µîÀå ÇÔ¼ö¸¦ ½ÇÇàÇÑ´Ù!
-        // ÀÌ ¾È¿¡¼­ m_isBossStage = true·Î ¹Ù²î°í, ·»´õ·¯¿¡°Ô SetBossThemeActive(true)(ºÓÀº»ö) ½ÅÈ£¸¦ º¸³½´Ü´Ù.
         TriggerBossAppearance();
     }
 
-    // 3. º¸½º µîÀå »óÅÂ¶ó¸é ½Ã°£À» ´©ÀûÇÏ¿© ·»´õ·¯¿¡°Ô Àü´Þ (±âÁ¸ ÄÚµå À¯Áö)
+    // 3) While in the boss stage, keep feeding time to the shader so the
+    //    initial flicker fades out (g_time-driven sin wave in TextureShader.hlsl).
     if (m_isBossStage)
     {
         m_bossStageTimer += dt;
         if (m_envRenderer != nullptr)
         {
-            // ·»´õ·¯¿¡°Ô ´©Àû ½Ã°£À» °è¼Ó ÁÖÀÔÇÏ¿© ¼ÎÀÌ´õ »ó¼ö ¹öÆÛ°¡ ¿ï··°Å¸®°Ô ¸¸µê
             m_envRenderer->UpdateShaderTime(m_bossStageTimer);
         }
     }
 
-    // 4. ÅºÈ¯ Ãæµ¹ ¼¶±¤ Å¸ÀÌ¸Ó Á¦¾î (±âÁ¸ ÄÚµå À¯Áö)
+    // 4) Hit-flash countdown (no-op until ReportWallCollision has callers).
     if (m_isFlashActive)
     {
         m_flashTimer += dt;
@@ -74,13 +75,12 @@ void TerrainStateController::Update(float dt)
 
 void TerrainStateController::TriggerBossAppearance()
 {
-    if (m_isBossStage == true) return; // ÀÌ¹Ì ÄÑÁ®ÀÖ´Ù¸é ¹«½Ã
+    if (m_isBossStage) return; // Already active.
 
     m_isBossStage = true;
     m_bossStageTimer = 0.0f;
-    Logger::Info("TerrainStateController: º¸½º µîÀå »óÅÂ °¨Áö! ¸Ê Å×¸¶ ÀüÈ¯");
+    Logger::Info("TerrainStateController: boss stage started â€” switching tone");
 
-    // È¯°æ ·»´õ·¯¿¡°Ô ¹è°æ»öÀ» ºÓÀº»öÀ¸·Î ¹Ù²Ù¶ó°í Áö½Ã(Write)
     if (m_envRenderer != nullptr)
     {
         m_envRenderer->SetBossThemeActive(true);
@@ -93,7 +93,6 @@ void TerrainStateController::ReportWallCollision(const Vec3& hitPosition)
     m_flashTimer = 0.0f;
     m_lastHitPosition = hitPosition;
 
-    // È¯°æ ·»´õ·¯¿¡°Ô ÀÌ ÁÂÇ¥¿¡ ÅºÈ¯ ¹ÚÇûÀ¸´Ï±î ³ë¶þ°Ô ¹Ù²Ù¶ó°í Ãæµ¹ ÁÂÇ¥ Àü´Þ(Write)
     if (m_envRenderer != nullptr)
     {
         m_envRenderer->EnableFlashEffect(m_lastHitPosition);

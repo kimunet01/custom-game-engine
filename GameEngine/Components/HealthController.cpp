@@ -32,6 +32,16 @@ void HealthController::Start()
     Logger::Info("HealthController started. owner=%s", pOwner->name.c_str());
 }
 
+void HealthController::Update(float dt)
+{
+    if (invincibilityRemaining > 0.0f) {
+        invincibilityRemaining -= dt;
+        if (invincibilityRemaining < 0.0f) {
+            invincibilityRemaining = 0.0f;
+        }
+    }
+}
+
 void HealthController::TakeDamage(int amount)
 {
     if (healthState == nullptr) {
@@ -45,18 +55,28 @@ void HealthController::TakeDamage(int amount)
     if (lifeState != nullptr && lifeState->IsDead()) {
         return;
     }
+    // 무적 시간 중: 연속 충돌에서 매 프레임 데미지가 누적되지 않도록 무시.
+    if (invincibilityRemaining > 0.0f) {
+        return;
+    }
 
     const int prev = healthState->GetCurrent();
     const int next = prev - amount;
     healthState->SetCurrent(next);
-    Logger::Info("HealthController::TakeDamage owner=%s amount=%d hp=%d->%d",
-                 pOwner ? pOwner->name.c_str() : "(null)", amount, prev, healthState->GetCurrent());
+    invincibilityRemaining = invincibilityDuration;
+    Logger::Info("HealthController::TakeDamage owner=%s amount=%d hp=%d->%d invincible=%.2fs",
+                 pOwner ? pOwner->name.c_str() : "(null)", amount, prev, healthState->GetCurrent(), invincibilityDuration);
 
     // HP가 0 이하가 되면 LifeState를 Dead로 전환한다.
     // SetDead가 콜백을 발화해 SpriteAnimator/PlayerControl/DeathTimer 등이 자동 반응한다.
     if (healthState->GetCurrent() <= 0 && lifeState != nullptr && lifeState->IsAlive()) {
         lifeState->SetDead();
     }
+}
+
+void HealthController::SetInvincibilityDuration(float seconds)
+{
+    invincibilityDuration = (seconds >= 0.0f) ? seconds : 0.4f;
 }
 
 void HealthController::Heal(int amount)

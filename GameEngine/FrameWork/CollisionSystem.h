@@ -11,6 +11,7 @@
 #include <vector>
 
 class GameObject;
+class LevelLayout;
 
 struct CollisionPair {
     // 충돌한 두 GameObject 포인터. 실제 소유권은 GameLoop/gameWorld 쪽에 있다.
@@ -51,6 +52,9 @@ private:
     float maxY;
     // Player와 Bullet 충돌 시 lose 메시지를 한 번만 출력하기 위한 상태.
     bool isLosePrinted;
+    // gameWorld에서 찾은 LevelLayout 포인터를 캐싱한다. nullptr이면 아직 못 찾았거나 없음.
+    // StageTerrain은 pendingDestroy되지 않으므로 한 번 캐싱하면 게임 종료까지 유효하다.
+    LevelLayout* cachedLevelLayout;
 
     // 충돌 법선 방향을 기준으로 속도를 반사한다.
     static void ReflectVelocity(GameObject* object, float normalX, float normalY, float normalZ);

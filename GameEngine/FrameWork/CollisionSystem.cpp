@@ -4,6 +4,7 @@
 #include <cstdio>
 
 #include "GameObject.h"
+#include "HealthController.h"
 #include "Logger.h"
 #include "LevelLayout.h"
 
@@ -22,6 +23,7 @@ CollisionSystem::CollisionSystem(float distance)
     , minY(-0.65f)
     , maxY(0.65f)
     , isLosePrinted(false)
+    , cachedLevelLayout(nullptr)
 {
     Logger::Info("CollisionSystem created. distance=%.3f bounds=(%.2f, %.2f, %.2f, %.2f)", collisionDistance, minX, maxX, minY, maxY);
 }
@@ -68,36 +70,33 @@ float CollisionSystem::GetMaxY() const
 
 void CollisionSystem::Update(const std::vector<GameObject*>& gameObjects)
 {
-    // 매개변수로 들어온 gameObjects를 사용하여 LevelLayout 부품을 찾는다
-    LevelLayout* levelLayout = nullptr;
-    for (GameObject* obj : gameObjects) {
-        if (obj != nullptr) {
-            levelLayout = obj->GetComponent<LevelLayout>();
-            if (levelLayout != nullptr) {
-                break; // 찾았으면 루프 탈출
+    // LevelLayout은 게임 전체에 하나만 존재하는 정적 지형이다.
+    // 첫 호출 또는 캐시가 무효한 경우에만 gameWorld 전체에서 검색한다.
+    if (cachedLevelLayout == nullptr) {
+        for (GameObject* obj : gameObjects) {
+            if (obj == nullptr) continue;
+            LevelLayout* layout = obj->GetComponent<LevelLayout>();
+            if (layout != nullptr) {
+                cachedLevelLayout = layout;
+                break;
             }
         }
     }
 
-    if (levelLayout != nullptr)
-    {
-        for (GameObject* obj : gameObjects)
-        {
-            if (obj != nullptr)
-            {
-                // 플레이어나 몬스터처럼 벽에 부딪혀야 하는 움직이는 객체들을 대상으로 삼는다.
-    
-                if (obj->name == "Player1" || obj->name == "Player2" || obj->name == "Player" || obj->name == "Monster")
-                {
-                    // 외부에서 강제로 호출하는 대신, levelLayout의 주체적인 함수들을 호출해 준다.
-                    // 만약 LevelLayout 내부 함수가 묶여있다면 지형 오브젝트의 Update를 활용하거나
-                    levelLayout->ClampGameObjectToBounds(obj);
-                    levelLayout->ResolvePillarCollision(obj);
-                    levelLayout->ResolveBoxCollision(obj);
-                }
+    // 지형이 있으면, 벽 충돌이 적용되어야 하는 캐릭터들(Player/Enemy)에게 클램프 + 박스 충돌을 적용한다.
+    // 이름 하드코딩 대신 TeamId 기반으로 판정하므로 Enemy/Boss도 자동으로 포함된다.
+    if (cachedLevelLayout != nullptr) {
+        for (GameObject* obj : gameObjects) {
+            if (obj == nullptr) continue;
+            if (obj->teamId != TeamId::Player && obj->teamId != TeamId::Enemy) {
+                continue;
             }
+            cachedLevelLayout->ClampGameObjectToBounds(obj);
+            cachedLevelLayout->ResolvePillarCollision(obj);
+            cachedLevelLayout->ResolveBoxCollision(obj);
         }
     }
+
     // 1. 충돌 쌍을 먼저 모두 찾는다.
     const std::vector<CollisionPair> collisionPairs = Detect(gameObjects);
 
@@ -277,15 +276,55 @@ void CollisionSystem::ResolveBounds(GameObject* object)
 
 void CollisionSystem::NotifyCollision(const CollisionPair& pair)
 {
-    // 현재 게임 규칙: Player와 Bullet이 충돌하면 lose!를 한 번 출력한다.
-    // 더 많은 규칙이 생기면 이벤트/콜백 구조로 분리할 후보 지점이다.
-    const bool firstIsPlayer = pair.first != nullptr && pair.first->name == "Player";
-    const bool secondIsPlayer = pair.second != nullptr && pair.second->name == "Player";
-    const bool firstIsBullet = pair.first != nullptr && pair.first->name.find("Bullet") == 0;
-    const bool secondIsBullet = pair.second != nullptr && pair.second->name.find("Bullet") == 0;
+    if (pair.first == nullptr || pair.second == nullptr) {
+        return;
+    }
+
+    // 기존 규칙: Player와 Bullet 충돌 시 lose! 1회 출력 (name 기반, 이전 호환).
+    const bool firstIsPlayer = pair.first->name == "Player";
+    const bool secondIsPlayer = pair.second->name == "Player";
+    const bool firstIsBullet = pair.first->name.find("Bullet") == 0;
+    const bool secondIsBullet = pair.second->name.find("Bullet") == 0;
 
     if (!isLosePrinted && ((firstIsPlayer && secondIsBullet) || (secondIsPlayer && firstIsBullet))) {
         Logger::Info("lose!");
         isLosePrinted = true;
+    }
+
+    // 신규 규칙: TeamId가 Player인 쪽과 Enemy인 쪽이 충돌하면 Player가 데미지를 입고 적 반대 방향으로 밀려난다.
+    // 무적 시간은 HealthController가 관리하므로 매 프레임 충돌이 호출되어도 데미지는 한 번만 누적된다.
+    GameObject* playerObj = nullptr;
+    GameObject* enemyObj = nullptr;
+    if (pair.first->teamId == TeamId::Player && pair.second->teamId == TeamId::Enemy) {
+        playerObj = pair.first;
+        enemyObj = pair.second;
+    }
+    else if (pair.second->teamId == TeamId::Player && pair.first->teamId == TeamId::Enemy) {
+        playerObj = pair.second;
+        enemyObj = pair.first;
+    }
+
+    if (playerObj != nullptr && enemyObj != nullptr) {
+        // 적 → 플레이어 방향 벡터의 반대 방향으로 플레이어를 밀어낸다.
+        float nx = playerObj->position.x - enemyObj->position.x;
+        float ny = playerObj->position.y - enemyObj->position.y;
+        float length = std::sqrt(nx * nx + ny * ny);
+        if (length <= 0.0001f) {
+            nx = 1.0f; ny = 0.0f; length = 1.0f;
+        }
+        nx /= length;
+        ny /= length;
+
+        // ResolveObjectCollision이 이미 살짝(0.01) 분리하고 속도를 반사하므로,
+        // 여기서는 약간 더 큰 knockback offset만 추가로 적용한다.
+        constexpr float kKnockbackDistance = 0.05f;
+        playerObj->position.x += nx * kKnockbackDistance;
+        playerObj->position.y += ny * kKnockbackDistance;
+
+        // 데미지는 HealthController가 무적 타이머로 연속 적중을 차단한다.
+        HealthController* playerHealth = playerObj->GetComponent<HealthController>();
+        if (playerHealth != nullptr) {
+            playerHealth->TakeDamage(1);
+        }
     }
 }

@@ -131,77 +131,93 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
-    <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
-    <ClCompile Include="Components\EnvironmentRenderer.cpp" />
-    <ClCompile Include="Components\TerrainStateController.cpp" />
-    <ClCompile Include="FrameWork\Component.cpp" />
+    <!-- Core -->
+    <ClCompile Include="Core\main.cpp" />
+    <!-- FrameWork (알파벳 순) -->
     <ClCompile Include="FrameWork\CollisionSystem.cpp" />
     <ClCompile Include="FrameWork\CombatSystem.cpp" />
-    <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
+    <ClCompile Include="FrameWork\Component.cpp" />
     <ClCompile Include="FrameWork\GameLoop.cpp" />
     <ClCompile Include="FrameWork\GameObject.cpp" />
-    <ClCompile Include="Core\main.cpp" />
+    <ClCompile Include="FrameWork\LevelLayout.cpp" />
+    <!-- Callbacks -->
     <ClCompile Include="Callbacks\StateCallbacks.cpp" />
+    <!-- States (알파벳 순) -->
     <ClCompile Include="States\AttackState.cpp" />
     <ClCompile Include="States\HealthState.cpp" />
     <ClCompile Include="States\LifeState.cpp" />
     <ClCompile Include="States\MovementState.cpp" />
+    <!-- Components (알파벳 순) -->
     <ClCompile Include="Components\AttackController.cpp" />
     <ClCompile Include="Components\DeathTimer.cpp" />
+    <ClCompile Include="Components\EnvironmentRenderer.cpp" />
     <ClCompile Include="Components\HealthController.cpp" />
     <ClCompile Include="Components\HitReactionController.cpp" />
     <ClCompile Include="Components\MeshRenderer.cpp" />
     <ClCompile Include="Components\PlayerControl.cpp" />
     <ClCompile Include="Components\SpriteAnimator.cpp" />
+    <ClCompile Include="Components\TerrainStateController.cpp" />
     <ClCompile Include="Components\VelocityController.cpp" />
-    <ClCompile Include="Common\Win32Handler.cpp" />
-    <ClCompile Include="Common\Resources\Mesh.cpp" />
-    <ClCompile Include="Common\Resources\Material.cpp" />
-    <ClCompile Include="Common\Resources\ShaderSet.cpp" />
+    <!-- Common (알파벳 순) -->
+    <ClCompile Include="Common\D3D11ResourceHandler.cpp" />
     <ClCompile Include="Common\Logger.cpp" />
-    <ClCompile Include="FrameWork\LevelLayout.cpp" />
+    <ClCompile Include="Common\Win32Handler.cpp" />
+    <!-- Common\Resources -->
+    <ClCompile Include="Common\Resources\Material.cpp" />
+    <ClCompile Include="Common\Resources\Mesh.cpp" />
+    <ClCompile Include="Common\Resources\ShaderSet.cpp" />
+    <!-- Common\Resources\Materials -->
+    <ClCompile Include="Common\Resources\Materials\ColorMaterial.cpp" />
+    <ClCompile Include="Common\Resources\Materials\TextureMaterial.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
-    <ClInclude Include="Common\Resources\Materials\TextureMaterial.h" />
-    <ClInclude Include="Components\EnvironmentRenderer.h" />
-    <ClInclude Include="FrameWork\Component.h" />
+    <!-- FrameWork (알파벳 순) -->
     <ClInclude Include="FrameWork\CollisionSystem.h" />
     <ClInclude Include="FrameWork\CombatSystem.h" />
-    <ClInclude Include="Common\D3D11ResourceHandler.h" />
-    <ClInclude Include="Common\EngineTypes.h" />
-    <ClInclude Include="Common\Utils.h" />
+    <ClInclude Include="FrameWork\Component.h" />
     <ClInclude Include="FrameWork\GameLoop.h" />
     <ClInclude Include="FrameWork\GameObject.h" />
-    <ClInclude Include="Callbacks\StateCallbacks.h" />
+    <ClInclude Include="FrameWork\LevelLayout.h" />
     <ClInclude Include="FrameWork\State.h" />
+    <!-- Callbacks -->
+    <ClInclude Include="Callbacks\StateCallbacks.h" />
+    <!-- States (알파벳 순) -->
     <ClInclude Include="States\AttackState.h" />
     <ClInclude Include="States\HealthState.h" />
     <ClInclude Include="States\LifeState.h" />
     <ClInclude Include="States\MovementState.h" />
+    <!-- Components (알파벳 순) -->
     <ClInclude Include="Components\AttackController.h" />
     <ClInclude Include="Components\DeathTimer.h" />
+    <ClInclude Include="Components\EnvironmentRenderer.h" />
     <ClInclude Include="Components\HealthController.h" />
     <ClInclude Include="Components\HitReactionController.h" />
     <ClInclude Include="Components\MeshRenderer.h" />
     <ClInclude Include="Components\PlayerControl.h" />
     <ClInclude Include="Components\SpriteAnimator.h" />
+    <ClInclude Include="Components\TerrainStateController.h" />
     <ClInclude Include="Components\VelocityController.h" />
-    <ClInclude Include="Common\Win32Handler.h" />
-    <ClInclude Include="Common\Resources\Mesh.h" />
-    <ClInclude Include="Common\Resources\Material.h" />
-    <ClInclude Include="Common\Resources\ShaderSet.h" />
+    <!-- Common (알파벳 순) -->
+    <ClInclude Include="Common\D3D11ResourceHandler.h" />
+    <ClInclude Include="Common\EngineTypes.h" />
     <ClInclude Include="Common\Logger.h" />
-    <ClInclude Include="FrameWork\LevelLayout.h" />
+    <ClInclude Include="Common\Utils.h" />
+    <ClInclude Include="Common\Win32Handler.h" />
+    <!-- Common\Resources -->
+    <ClInclude Include="Common\Resources\Material.h" />
+    <ClInclude Include="Common\Resources\Mesh.h" />
+    <ClInclude Include="Common\Resources\ShaderSet.h" />
+    <!-- Common\Resources\Materials -->
+    <ClInclude Include="Common\Resources\Materials\ColorMaterial.h" />
+    <ClInclude Include="Common\Resources\Materials\TextureMaterial.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Common\Resources\Shaders\ColorShader.hlsl" />
     <None Include="Common\Resources\Shaders\TextureShader.hlsl" />
-    <None Include="Components\TerrainStateController.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\chmov.png" />
+    <Image Include="assets\Dungeon2.png" />
     <Image Include="assets\gold.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

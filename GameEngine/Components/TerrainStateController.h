@@ -1,10 +1,21 @@
-#pragma once
+ï»¿#pragma once
+
+/*
+ * TerrainStateController.h
+ * Drives stage-wide environment state on the StageTerrain GameObject.
+ *
+ * Responsibilities:
+ *  - Tracks elapsed time and triggers the boss stage after a fixed delay
+ *    (currently 5s â€” TODO: link to the actual boss GameObject's LifeState).
+ *  - Forwards time to EnvironmentRenderer so the shader's flicker animates.
+ *  - Exposes ReportWallCollision so future bullet code can flash the stage on impact.
+ *    (No caller wires this yet â€” kept as a hook for future bullet/impact work.)
+ */
 
 #include <string>
 #include "Component.h"
-#include "EngineTypes.h" 
+#include "EngineTypes.h"
 
-// ¿£ÁøÀÇ ´Ù¸¥ ºÎÇ°µéÀ» Á¦¾îÇÏ±â À§ÇÑ Àü¹æ ¼±¾ğ
 class LevelLayout;
 class EnvironmentRenderer;
 class GameObject;
@@ -14,30 +25,29 @@ public:
     explicit TerrainStateController();
     virtual ~TerrainStateController() = default;
 
-    // Component °¡»ó ÇÔ¼ö ¿À¹ö¶óÀÌµå
     void Start() override;
     void Update(float dt) override;
 
-    // ¿ÜºÎ(¿¹: Spawner)¿¡¼­ º¸½º µîÀå ½ÅÈ£¸¦ ÁÙ ¶§ È£ÃâÇÒ ÇÔ¼ö
+    // Manually switch the stage to its boss theme (otherwise auto-triggered at 5s).
     void TriggerBossAppearance();
 
-    // ¿ÜºÎ(¿¹: CollisionSystem)¿¡¼­ ÅºÈ¯ÀÌ º®¿¡ Ãæµ¹ÇßÀ» ¶§ ÁÂÇ¥¸¦ Á¢¼öÇÒ ÇÔ¼ö
+    // Hook for future bullet/projectile code to flash the stage at a hit point.
+    // Currently unused â€” no caller wired in main.cpp.
     void ReportWallCollision(const Vec3& hitPosition);
 
-    // »óÅÂ Á¶È¸¸¦ À§ÇÑ Get ÇÔ¼öµé
     bool IsBossStageActive() const { return m_isBossStage; }
 
 private:
-    // ÁöÇü °üÁ¦Å¾ÀÌ ½Ç½Ã°£À¸·Î ºÎ·Á¸ÔÀ» ÇÏºÎ ÀÎÇÁ¶ó ºÎÇ° Æ÷ÀÎÅÍ
+    // Sibling components on the same GameObject (StageTerrain).
     LevelLayout* m_levelLayout = nullptr;
     EnvironmentRenderer* m_envRenderer = nullptr;
 
-    // ÁöÇüÀÇ Àü¿ª »óÅÂ º¯¼öµé
+    // Boss-stage state.
     bool m_isBossStage = false;
-    float m_bossStageTimer = 0.0f;
-    float m_stageElapsedTime = 0.0f; // °ÔÀÓ ½ÃÀÛ ÈÄ Èå¸¥ ÀüÃ¼ ½Ã°£À» ´©ÀûÇÒ Å¸ÀÌ¸Ó
+    float m_bossStageTimer = 0.0f;        // Seconds since boss stage started â€” drives the shader's flicker.
+    float m_stageElapsedTime = 0.0f;      // Seconds since stage start â€” used to auto-trigger boss.
 
-    // ÅºÈ¯ Ãæµ¹ ¿¬Ãâ¿ë Á¦¾î º¯¼ö
+    // Hit-flash state (currently inert because ReportWallCollision has no caller).
     bool m_isFlashActive = false;
     float m_flashTimer = 0.0f;
     const float m_maxFlashDuration = 0.2f;

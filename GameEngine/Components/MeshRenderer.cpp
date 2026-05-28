@@ -18,6 +18,7 @@ MeshRenderer::MeshRenderer(std::vector<Mesh*> meshes, Material* mat)
     : meshes(std::move(meshes))
     , pMatrixBuffer(nullptr)
     , pTintBuffer(nullptr)
+    , pEnvNeutralBuffer(nullptr)
     , pMaterial(mat)
 {
     // 기본 tint는 (1,1,1,1)로 텍스처 색상을 그대로 출력.
@@ -90,6 +91,31 @@ void MeshRenderer::Start()
         return;
     }
 
+    // PS b1 (EnvironmentBuffer)에 채워 넣을 neutral 데이터. EnvironmentRenderer.h의 EnvironmentBufferType과
+    // 동일한 레이아웃(time, isBossStage, padding(8B), hitPosition(16B), 총 32바이트)을 가져야 한다.
+    struct EnvNeutralLayout {
+        float time;
+        int isBossStage;
+        float pad0, pad1;
+        float hx, hy, hz, hw;
+    };
+    static_assert(sizeof(EnvNeutralLayout) == 32, "EnvNeutralLayout size must match EnvironmentBufferType");
+
+    D3D11_BUFFER_DESC envBufferDesc = {};
+    envBufferDesc.ByteWidth = sizeof(EnvNeutralLayout);
+    envBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    envBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+    EnvNeutralLayout neutralEnv = { 0.0f, 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+    D3D11_SUBRESOURCE_DATA envInitData = {};
+    envInitData.pSysMem = &neutralEnv;
+
+    const HRESULT envHr = pd3dDevice->CreateBuffer(&envBufferDesc, &envInitData, &pEnvNeutralBuffer);
+    if (FAILED(envHr) || pEnvNeutralBuffer == nullptr) {
+        Logger::Error("MeshRenderer failed to create neutral env buffer. owner=%s hr=0x%08X", pOwner->name.c_str(), static_cast<unsigned int>(envHr));
+        return;
+    }
+
     isStarted = true;
     Logger::Info("MeshRenderer started. owner=%s meshCount=%zu", pOwner->name.c_str(), meshes.size());
 }
@@ -151,10 +177,14 @@ void MeshRenderer::Render()
         }
 
         // Mesh의 vertex buffer를 input assembler에 연결하고, 행렬/틴트 버퍼를 셰이더 슬롯에 연결한다.
-        // PS b1 슬롯은 EnvironmentRenderer가 stage-wide 효과(보스 톤/플래시)에 사용하므로 충돌을 피해
-        // tint는 PS b2 슬롯을 사용한다 (TextureShader.hlsl의 register(b2)와 일치).
+        // PS b1 슬롯은 EnvironmentRenderer가 stage-wide 효과에 쓰지만, 그 값이 캐릭터까지 새지 않도록
+        // 캐릭터 렌더 시점에는 neutral 값(isBossStage=0)으로 덮어쓴다.
+        // PS b2 슬롯에는 per-instance tint를 바인딩한다 (TextureShader.hlsl의 register(b2)와 일치).
         pImmediateContext->IASetVertexBuffers(0, 1, &pMesh->pVertexBuffer, &stride, &offset);
         pImmediateContext->VSSetConstantBuffers(0, 1, &pMatrixBuffer);
+        if (pEnvNeutralBuffer != nullptr) {
+            pImmediateContext->PSSetConstantBuffers(1, 1, &pEnvNeutralBuffer);
+        }
         if (pTintBuffer != nullptr) {
             pImmediateContext->PSSetConstantBuffers(2, 1, &pTintBuffer);
         }
@@ -172,12 +202,15 @@ void MeshRenderer::SetTint(float r, float g, float b, float a)
 
 
 MeshRenderer::~MeshRenderer() {
-    // pMatrixBuffer/pTintBuffer는 MeshRenderer가 직접 만든 COM 객체이므로 여기서 Release한다.
+    // pMatrixBuffer/pTintBuffer/pEnvNeutralBuffer는 MeshRenderer가 직접 만든 COM 객체이므로 여기서 Release한다.
     if (pMatrixBuffer != nullptr) {
         pMatrixBuffer->Release();
     }
     if (pTintBuffer != nullptr) {
         pTintBuffer->Release();
+    }
+    if (pEnvNeutralBuffer != nullptr) {
+        pEnvNeutralBuffer->Release();
     }
     Logger::Info("MeshRenderer destroyed");
 }

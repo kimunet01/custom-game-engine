@@ -115,10 +115,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     bossMesh->createVertexBuffer();
 
     GameLoop loop;
-    loop.collisionSystem.SetBounds(-0.85f, 0.87f, -0.86f, 0.65f);
+    // CollisionSystem의 경계는 LevelLayout이 정의한 영역과 일치시킨다.
+    // (LevelLayout: -0.85~0.95, -1.6~0.8 → 같은 값을 ResolveBounds에도 사용해 캐릭터가
+    //  매 프레임 두 다른 범위에 의해 동시에 클램프되는 문제를 막는다.)
+    loop.collisionSystem.SetBounds(-0.85f, 0.95f, -1.6f, 0.8f);
 
     TextureMaterial* dungeonMaterial = new TextureMaterial(textureShaders, L"assets\\Dungeon2.png");
     GameObject* stageTerrain = new GameObject("StageTerrain");
+    // 정적 지형은 어느 팀도 아니며 다른 오브젝트와 충돌 판정에 들어가지 않아야 한다.
+    stageTerrain->teamId = TeamId::Neutral;
+    stageTerrain->collisionRadius = 0.0f;
     stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
     stageTerrain->AddComponent(new LevelLayout());
     Mesh* floorMesh = new Mesh(CreateSpriteQuadMesh(3.12f, 2.925f, 0.0f, 0.0f, 1.0f, 1.0f));
@@ -133,7 +139,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ─────────────────────────────────────────────────────────
     GameObject* player = new GameObject("Player");
     player->teamId = TeamId::Player;
-    player->collisionRadius = 0.09f;
+    // 시각적으로 캐릭터가 거의 겹쳤을 때만 충돌하도록 반경을 절반 정도로 축소.
+    player->collisionRadius = 0.045f;
     // States (모두 먼저 등록되어야 Component Start에서 GetState로 찾을 수 있음).
     player->AddState(new AttackState());
     player->AddState(new LifeState());
@@ -161,7 +168,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ─────────────────────────────────────────────────────────
     GameObject* enemy = new GameObject("Enemy");
     enemy->teamId = TeamId::Enemy;
-    enemy->collisionRadius = 0.09f;
+    enemy->collisionRadius = 0.045f;
     enemy->position.x = 0.3f;
     enemy->position.y = 0.0f;
     enemy->AddState(new AttackState());
@@ -184,7 +191,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     // ─────────────────────────────────────────────────────────
     GameObject* boss = new GameObject("Boss");
     boss->teamId = TeamId::Enemy;
-    boss->collisionRadius = 0.18f; // scale 2배에 비례
+    boss->collisionRadius = 0.09f; // scale 2배에 비례 (Player/Enemy의 2배)
     boss->position.x = -0.5f;
     boss->position.y = 0.2f;
     boss->scale.x = 2.0f;
