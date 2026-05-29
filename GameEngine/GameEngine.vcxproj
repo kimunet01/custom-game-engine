@@ -147,6 +147,7 @@
     <ClCompile Include="States\HealthState.cpp" />
     <ClCompile Include="States\LifeState.cpp" />
     <ClCompile Include="States\MovementState.cpp" />
+    <ClCompile Include="States\TerrainState.cpp" />
     <!-- Components (알파벳 순) -->
     <ClCompile Include="Components\AttackController.cpp" />
     <ClCompile Include="Components\DeathTimer.cpp" />
@@ -186,6 +187,7 @@
     <ClInclude Include="States\HealthState.h" />
     <ClInclude Include="States\LifeState.h" />
     <ClInclude Include="States\MovementState.h" />
+    <ClInclude Include="States\TerrainState.h" />
     <!-- Components (알파벳 순) -->
     <ClInclude Include="Components\AttackController.h" />
     <ClInclude Include="Components\DeathTimer.h" />

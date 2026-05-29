@@ -1,19 +1,22 @@
-﻿#include "EnvironmentRenderer.h"
+#include "EnvironmentRenderer.h"
+
 #include <directxmath.h>
+
 #include "GameObject.h"
 #include "Logger.h"
+#include "StateCallbacks.h"
+#include "TerrainState.h"
 
 EnvironmentRenderer::EnvironmentRenderer(Mesh* mesh, Material* mat)
     : pFloorMesh(mesh)
     , pMaterial(mat)
     , pMatrixBuffer(nullptr)
     , pEnvBuffer(nullptr)
-    , m_envData{}
 {
-    // Default state: no boss tone, no flash.
-    m_envData.time = 0.0f;
-    m_envData.isBossStage = 0;
-    m_envData.hitPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+    // 기본 상태: 보스 톤 비활성, 시간 0, 히트 위치 0.
+    envData.time = 0.0f;
+    envData.isBossStage = 0;
+    envData.hitPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
     Logger::Info("EnvironmentRenderer created. hasMesh=%d hasMaterial=%d",
                  pFloorMesh != nullptr, pMaterial != nullptr);
@@ -37,7 +40,7 @@ void EnvironmentRenderer::Start()
         return;
     }
 
-    // 1) b0 matrix constant buffer (world/view/proj).
+    // b0 matrix buffer
     D3D11_BUFFER_DESC matrixBufferDesc = {};
     matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
     matrixBufferDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -57,20 +60,30 @@ void EnvironmentRenderer::Start()
         return;
     }
 
-    // 2) b1 environment constant buffer (time / boss flag / hit position).
+    // b1 environment buffer
     D3D11_BUFFER_DESC envBufferDesc = {};
     envBufferDesc.ByteWidth = sizeof(EnvironmentBufferType);
     envBufferDesc.Usage = D3D11_USAGE_DEFAULT;
     envBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
     D3D11_SUBRESOURCE_DATA envInitData = {};
-    envInitData.pSysMem = &m_envData;
+    envInitData.pSysMem = &envData;
 
     hr = pd3dDevice->CreateBuffer(&envBufferDesc, &envInitData, &pEnvBuffer);
     if (FAILED(hr)) {
         Logger::Error("EnvironmentRenderer: CreateBuffer(env) failed. hr=0x%08X", hr);
-        if (pMatrixBuffer) pMatrixBuffer->Release();
+        if (pMatrixBuffer) { pMatrixBuffer->Release(); pMatrixBuffer = nullptr; }
         return;
+    }
+
+    // TerrainState 변경 구독 — 시각 효과 토글은 StateCallbacks::OnEnvTerrain이 처리.
+    TerrainState* terrain = pOwner->GetState<TerrainState>();
+    if (terrain != nullptr) {
+        terrain->Subscribe([this](TerrainStateType p, TerrainStateType n) {
+            StateCallbacks::OnEnvTerrain(this, p, n);
+        });
+    } else {
+        Logger::Warning("EnvironmentRenderer started without TerrainState. owner=%s", pOwner->name.c_str());
     }
 
     isStarted = true;
@@ -89,62 +102,29 @@ void EnvironmentRenderer::Render()
         return;
     }
 
-    // 1) Bind shader/texture/sampler.
     pMaterial->Bind();
 
-    // 2) Upload b0 matrix (identity world for a screen-filling stage quad).
     MatrixBufferType matrixData = {};
     matrixData.worldMatrix = DirectX::XMMatrixIdentity();
     matrixData.viewMatrix = DirectX::XMMatrixIdentity();
     matrixData.projectionMatrix = DirectX::XMMatrixIdentity();
     pImmediateContext->UpdateSubresource(pMatrixBuffer, 0, nullptr, &matrixData, 0, 0);
 
-    // 3) Upload b1 environment data (time / boss tone / hit position).
-    pImmediateContext->UpdateSubresource(pEnvBuffer, 0, nullptr, &m_envData, 0, 0);
+    // 매 프레임 envData를 GPU로 업로드. 외부가 envData를 직접 변경했어도 다음 Render에서 반영됨.
+    pImmediateContext->UpdateSubresource(pEnvBuffer, 0, nullptr, &envData, 0, 0);
 
-    // 4) Bind input assembler and VS constant buffer.
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     pImmediateContext->IASetVertexBuffers(0, 1, &pFloorMesh->pVertexBuffer, &stride, &offset);
     pImmediateContext->VSSetConstantBuffers(0, 1, &pMatrixBuffer);
-
-    // 5) Bind PS b1 to the environment buffer. HLSL reads g_time / g_isBossStage / g_hitPosition.
     pImmediateContext->PSSetConstantBuffers(1, 1, &pEnvBuffer);
 
-    // 6) Draw the stage quad.
     pImmediateContext->Draw(static_cast<UINT>(pFloorMesh->mesh.size()), 0);
-}
-
-void EnvironmentRenderer::UpdateShaderTime(float time)
-{
-    m_envData.time = time;
-}
-
-void EnvironmentRenderer::SetBossThemeActive(bool active)
-{
-    m_envData.isBossStage = active ? 1 : 0;
-}
-
-void EnvironmentRenderer::EnableFlashEffect(const Vec3& hitPos)
-{
-    // W=1 marks a valid hit position to the shader (currently unused there).
-    m_envData.hitPosition = DirectX::XMFLOAT4(hitPos.x, hitPos.y, hitPos.z, 1.0f);
-}
-
-void EnvironmentRenderer::DisableFlashEffect()
-{
-    m_envData.hitPosition = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 EnvironmentRenderer::~EnvironmentRenderer()
 {
-    if (pMatrixBuffer != nullptr) {
-        pMatrixBuffer->Release();
-        pMatrixBuffer = nullptr;
-    }
-    if (pEnvBuffer != nullptr) {
-        pEnvBuffer->Release();
-        pEnvBuffer = nullptr;
-    }
+    if (pMatrixBuffer != nullptr) { pMatrixBuffer->Release(); pMatrixBuffer = nullptr; }
+    if (pEnvBuffer    != nullptr) { pEnvBuffer->Release();    pEnvBuffer    = nullptr; }
     Logger::Info("EnvironmentRenderer destroyed (GPU buffers released).");
 }

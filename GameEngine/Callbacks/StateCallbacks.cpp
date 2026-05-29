@@ -1,8 +1,13 @@
-#include "StateCallbacks.h"
+﻿#include "StateCallbacks.h"
 
 #include <string>
 
+#include "DeathTimer.h"
+#include "EnvironmentRenderer.h"
 #include "GameObject.h"
+#include "HealthController.h"
+#include "HitReactionController.h"
+#include "LifeState.h"
 #include "Logger.h"
 #include "PlayerControl.h"
 #include "SpriteAnimator.h"
@@ -99,5 +104,63 @@ namespace StateCallbacks
             return;
         }
         self->isAttackLocked = (next != AttackStateType::NoAttack);
+    }
+
+    void OnEnvTerrain(EnvironmentRenderer* self, TerrainStateType prev, TerrainStateType next)
+    {
+        Logger::Info("StateCallbacks::OnEnvTerrain %s -> %s",
+                     TerrainState::ToString(prev), TerrainState::ToString(next));
+        if (self == nullptr) return;
+
+        const bool isBossNow = (next == TerrainStateType::BossStage);
+        self->envData.isBossStage = isBossNow ? 1 : 0;
+
+        // BossStage 진입 직후 셰이더의 g_time을 0으로 리셋해 초기 플래시를 새로 시작한다.
+        if (prev != TerrainStateType::BossStage && isBossNow) {
+            self->envData.time = 0.0f;
+        }
+    }
+
+    void OnHealthAutoDeath(HealthController* self, int prev, int next)
+    {
+        // HP가 양수에서 0 이하로 떨어지는 진입 엣지에서만 사망 처리.
+        if (!(prev > 0 && next <= 0)) return;
+        if (self == nullptr || self->pOwner == nullptr) return;
+
+        LifeState* life = self->pOwner->GetState<LifeState>();
+        if (life != nullptr && life->IsAlive()) {
+            life->SetDead();
+        }
+    }
+
+    void OnLifeDeathTimer(DeathTimer* self, LifeStateType prev, LifeStateType next)
+    {
+        // Alive → Dead 진입 엣지에서만 카운트다운 시작.
+        if (!(prev != LifeStateType::Dead && next == LifeStateType::Dead)) return;
+        if (self == nullptr) return;
+        // 이미 카운트다운 중이거나 만료 후이면 재시작하지 않는다.
+        if (self->remainingTime >= 0.0f) return;
+
+        self->remainingTime = self->delay;
+        Logger::Info("StateCallbacks::OnLifeDeathTimer countdown started. owner=%s delay=%.3f",
+                     self->pOwner ? self->pOwner->name.c_str() : "(null)", self->delay);
+    }
+
+    void OnHitReaction(HitReactionController* self, int prev, int next)
+    {
+        // 데미지를 입은 경우(next < prev)만 반응 시작. 회복은 시각 반응 없음.
+        if (next >= prev) return;
+        if (self == nullptr || self->pOwner == nullptr) return;
+        // 이미 죽은 대상에는 새 반응을 시작하지 않는다. (이번 데미지로 사망한 경우는
+        // HealthState 콜백 순서상 LifeState가 아직 Alive로 보일 수 있어 한 번은 반응이 들어가는데
+        // 시각적으로 자연스러우므로 허용한다.)
+        if (LifeState* life = self->pOwner->GetState<LifeState>()) {
+            if (life->IsDead()) return;
+        }
+        // 반응 시작: 본 컴포넌트의 타이머만 세팅. Update가 매 프레임 보간/흔들림을 처리한다.
+        self->remainingTime = self->duration;
+        self->elapsedSincePeak = 0.0f;
+        Logger::Info("StateCallbacks::OnHitReaction triggered. owner=%s hp=%d->%d duration=%.3f",
+                     self->pOwner->name.c_str(), prev, next, self->duration);
     }
 }
