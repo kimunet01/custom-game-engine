@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /*
  * StateCallbacks.h
@@ -16,9 +16,14 @@
 #include "MovementState.h"
 #include "AttackState.h"
 #include "LifeState.h"
+#include "TerrainState.h"
 
 class SpriteAnimator;
 class PlayerControl;
+class EnvironmentRenderer;
+class HealthController;
+class HitReactionController;
+class DeathTimer;
 
 namespace StateCallbacks
 {
@@ -35,4 +40,21 @@ namespace StateCallbacks
     // PlayerControl 측 반응: Update가 사용할 입력 잠금 플래그를 갱신한다.
     void OnControlLife  (PlayerControl* self, LifeStateType   prev, LifeStateType   next);
     void OnControlAttack(PlayerControl* self, AttackStateType prev, AttackStateType next);
+
+    // EnvironmentRenderer 측 반응: TerrainState가 BossStage로 진입/이탈할 때
+    // 셰이더의 g_isBossStage 플래그와 g_time을 갱신한다. TerrainStateController는
+    // TerrainState를 Set하기만 하면 되고, 시각 효과 전환은 본 콜백이 담당한다.
+    void OnEnvTerrain(EnvironmentRenderer* self, TerrainStateType prev, TerrainStateType next);
+
+    // HealthController 측 반응: HP가 양수에서 0 이하로 떨어지는 순간 LifeState를 Dead로 전환한다.
+    // 어디서 HP를 감소시켰든(접촉/공격 적중) 사망 처리가 한 곳에서 일어나도록 보장한다.
+    void OnHealthAutoDeath(HealthController* self, int prev, int next);
+
+    // HitReactionController 측 반응: 데미지를 입은 시점(next < prev)에 본 컴포넌트의
+    // remainingTime/elapsedSincePeak을 세팅해 다음 Update부터 시각 반응이 시작된다.
+    void OnHitReaction(HitReactionController* self, int prev, int next);
+
+    // DeathTimer 측 반응: LifeState가 Dead로 진입하는 순간 본 컴포넌트의 remainingTime을
+    // delay로 세팅해 다음 Update부터 카운트다운이 시작된다.
+    void OnLifeDeathTimer(DeathTimer* self, LifeStateType prev, LifeStateType next);
 }

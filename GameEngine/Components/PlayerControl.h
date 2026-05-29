@@ -17,9 +17,6 @@
 #include "EngineTypes.h"
 #include "GameObject.h"
 
-class MovementState;
-class AttackController;
-
 class PlayerControl : public Component {
 public:
     // 입력이 들어왔을 때 pOwner->velocity에 반영할 이동 속도.
@@ -39,11 +36,6 @@ public:
     bool isMovementLocked = false;
     // AttackState가 NoAttack이 아니면 true → 이동/추가 공격 입력 차단.
     bool isAttackLocked = false;
-
-    // 입력에 따라 MovementState를 직접 Set하기 위한 write 측 참조. Start에서 1회 캐싱한다.
-    MovementState* movementState = nullptr;
-    // 공격 발동을 위탁할 Controller. Task 6에서 main이 등록한다.
-    AttackController* attackController = nullptr;
 
     explicit PlayerControl(int type);
 

@@ -2,7 +2,10 @@
 
 #include "AttackController.h"
 #include "AttackState.h"
+#include "CombatSystem.h"
 #include "GameObject.h"
+#include "HealthController.h"
+#include "HealthState.h"
 #include "LifeState.h"
 #include "Logger.h"
 #include "MovementState.h"
@@ -53,17 +56,8 @@ void PlayerControl::Start()
         return;
     }
 
-    // MovementState는 매 프레임 입력에 따라 직접 Set해야 하므로 포인터를 캐싱한다.
-    movementState = pOwner->GetState<MovementState>();
-    if (movementState == nullptr) {
-        Logger::Warning("PlayerControl started without MovementState. owner=%s", pOwner->name.c_str());
-    }
-
-    // 공격 발동은 AttackController로 위탁한다. main에서 PlayerControl보다 먼저 등록되어 있어야 한다.
-    attackController = pOwner->GetComponent<AttackController>();
-    if (attackController == nullptr) {
-        Logger::Warning("PlayerControl started without AttackController. owner=%s", pOwner->name.c_str());
-    }
+    // State 포인터는 캐싱하지 않는다. Update/콜백에서 owner->GetState<>로 즉시 조회.
+    // (콜백 등록도 지역 변수로 잠깐 가져와 Subscribe만 한다.)
 
     // LifeState/AttackState는 변경 통보를 받기만 하면 되므로 포인터를 캐싱하지 않고 콜백만 등록한다.
     LifeState* lifeState = pOwner->GetState<LifeState>();
@@ -99,8 +93,24 @@ void PlayerControl::Update(float dt)
 
     const bool attackPressedThisFrame = attack && !wasAttackPressed;
 
-    if (movementState != nullptr) {
+    if (MovementState* movementState = pOwner->GetState<MovementState>()) {
         movementState->SetFromDirectionInput(moveUp, moveDown, moveLeft, moveRight);
+    }
+
+    // 접촉 피격: 자기 isCollided가 true이고 무적 시간이 끝났다면 HP 1 감소.
+    // (CollisionSystem이 검출한 다른 GameObject와의 접촉. 정적 지형은 collisionRadius=0이라 무관.)
+    // HP가 0 이하가 되면 HealthController가 등록한 콜백이 자동으로 LifeState.Dead 전환.
+    if (pOwner->isCollided) {
+        HealthController* hc = pOwner->GetComponent<HealthController>();
+        HealthState* hs = pOwner->GetState<HealthState>();
+        if (hs != nullptr && (hc == nullptr || hc->invincibilityRemaining <= 0.0f)) {
+            const int prev = hs->GetCurrent();
+            hs->SetCurrent(prev - 1);
+            if (hc != nullptr) {
+                hc->invincibilityRemaining = hc->invincibilityDuration;
+            }
+            Logger::Info("PlayerControl contact-damage. hp=%d->%d", prev, hs->GetCurrent());
+        }
     }
 
     if (isMovementLocked) {
@@ -111,9 +121,19 @@ void PlayerControl::Update(float dt)
         return;
     }
 
-    // 공격 시작은 AttackController로 위탁. 결과적으로 AttackState가 Set되며 isAttackLocked 콜백이 발화된다.
-    if (attackPressedThisFrame && attackController != nullptr && !isAttackLocked) {
-        attackController->TriggerSword(0.4f);
+    // 공격 시작은 호출자가 한 곳(여기)뿐이므로 인라인으로 처리한다.
+    // AttackController의 타이머/Set + CombatSystem의 1회성 hitbox 요청을 같이 일으킨다.
+    if (attackPressedThisFrame && !isAttackLocked) {
+        constexpr float kSwordDuration = 0.4f;
+        AttackController* ctrl = pOwner->GetComponent<AttackController>();
+        AttackState* attackState = pOwner->GetState<AttackState>();
+        if (ctrl != nullptr && attackState != nullptr) {
+            ctrl->remainingTime = kSwordDuration;
+            attackState->Set(AttackStateType::SwordAttack);
+            if (ctrl->combatSystem != nullptr) {
+                ctrl->combatSystem->RequestHit(pOwner, AttackStateType::SwordAttack, ctrl->swordDamage);
+            }
+        }
     }
     wasAttackPressed = attack;
 

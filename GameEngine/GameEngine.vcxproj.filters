@@ -73,6 +73,9 @@
     <ClCompile Include="States\MovementState.cpp">
       <Filter>States</Filter>
     </ClCompile>
+    <ClCompile Include="States\TerrainState.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
     <!-- Components (알파벳 순) -->
     <ClCompile Include="Components\AttackController.cpp">
       <Filter>Components</Filter>
@@ -170,6 +173,9 @@
       <Filter>States</Filter>
     </ClInclude>
     <ClInclude Include="States\MovementState.h">
+      <Filter>States</Filter>
+    </ClInclude>
+    <ClInclude Include="States\TerrainState.h">
       <Filter>States</Filter>
     </ClInclude>
     <!-- Components (알파벳 순) -->
