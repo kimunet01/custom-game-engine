@@ -1,24 +1,20 @@
-﻿#pragma once
+#pragma once
 
 /*
  * TerrainStateController.h
- * Drives stage-wide environment state on the StageTerrain GameObject.
+ * 스테이지 진행 시간을 누적하고, 일정 시점에 TerrainState를 BossStage로 자동 전환하는 컴포넌트.
  *
- * Responsibilities:
- *  - Tracks elapsed time and triggers the boss stage after a fixed delay
- *    (currently 5s — TODO: link to the actual boss GameObject's LifeState).
- *  - Forwards time to EnvironmentRenderer so the shader's flicker animates.
- *  - Exposes ReportWallCollision so future bullet code can flash the stage on impact.
- *    (No caller wires this yet — kept as a hook for future bullet/impact work.)
+ * 정책:
+ *  - 외부 동작 진입점은 StateCallbacks의 자유 함수로 노출:
+ *    StateCallbacks::TriggerBossAppearance(owner), ReportWallCollision(owner, hitPos)
+ *  - GameObject가 이미 보유한 LevelLayout/EnvironmentRenderer/TerrainState 포인터는 캐싱하지 않는다.
+ *    Update/콜백이 owner->GetState/GetComponent로 즉시 조회한다.
+ *
+ *  본 컴포넌트는 lifecycle(Start/Update) + 시간/플래시 데이터만 보유.
  */
 
-#include <string>
 #include "Component.h"
 #include "EngineTypes.h"
-
-class LevelLayout;
-class EnvironmentRenderer;
-class GameObject;
 
 class TerrainStateController : public Component {
 public:
@@ -28,28 +24,15 @@ public:
     void Start() override;
     void Update(float dt) override;
 
-    // Manually switch the stage to its boss theme (otherwise auto-triggered at 5s).
-    void TriggerBossAppearance();
+    // ── 콜백이 직접 접근하는 public 데이터 ──
+    // Timing.
+    float bossStageTimer = 0.0f;       // BossStage 진입 후 경과 시간 — 셰이더 sin 깜빡임 입력.
+    float stageElapsedTime = 0.0f;     // 게임 시작 후 총 경과 시간 — 자동 보스 진입 트리거.
+    float autoBossTriggerTime = 5.0f;  // 이 값 이상이면 자동으로 BossStage로 전환.
 
-    // Hook for future bullet/projectile code to flash the stage at a hit point.
-    // Currently unused — no caller wired in main.cpp.
-    void ReportWallCollision(const Vec3& hitPosition);
-
-    bool IsBossStageActive() const { return m_isBossStage; }
-
-private:
-    // Sibling components on the same GameObject (StageTerrain).
-    LevelLayout* m_levelLayout = nullptr;
-    EnvironmentRenderer* m_envRenderer = nullptr;
-
-    // Boss-stage state.
-    bool m_isBossStage = false;
-    float m_bossStageTimer = 0.0f;        // Seconds since boss stage started — drives the shader's flicker.
-    float m_stageElapsedTime = 0.0f;      // Seconds since stage start — used to auto-trigger boss.
-
-    // Hit-flash state (currently inert because ReportWallCollision has no caller).
-    bool m_isFlashActive = false;
-    float m_flashTimer = 0.0f;
-    const float m_maxFlashDuration = 0.2f;
-    Vec3 m_lastHitPosition;
+    // Hit-flash state (현재는 호출자 없음 — 추후 Bullet wiring 시 활용).
+    bool isFlashActive = false;
+    float flashTimer = 0.0f;
+    float maxFlashDuration = 0.2f;
+    Vec3 lastHitPosition;
 };

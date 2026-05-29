@@ -35,6 +35,7 @@
 #include "EnemyState.h"
 #include "LevelLayout.h"        
 #include "EnvironmentRenderer.h"    
+#include "TerrainState.h"
 #include "TerrainStateController.h"
 #include "Resources/Materials/TextureMaterial.h"
 #include "Resources/Mesh.h"
@@ -133,6 +134,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     stageTerrain->teamId = TeamId::Neutral;
     stageTerrain->collisionRadius = 0.0f;
     stageTerrain->position = Vec3{ 0.0f, 0.0f, 1.0f };
+    // TerrainState는 데이터 단위로, 다른 State처럼 Component보다 먼저 등록한다.
+    // EnvironmentRenderer가 Start에서 GetState<TerrainState>로 찾아 Subscribe하기 때문.
+    stageTerrain->AddState(new TerrainState());
     stageTerrain->AddComponent(new LevelLayout());
     Mesh* floorMesh = new Mesh(CreateSpriteQuadMesh(3.12f, 2.925f, 0.0f, 0.0f, 1.0f, 1.0f));
     floorMesh->createVertexBuffer();
@@ -155,8 +159,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
     player->AddState(new HealthState(3));
     // Controllers.
     AttackController* playerAttack = new AttackController();
-    playerAttack->SetCombatSystem(&loop.combatSystem);
-    playerAttack->SetSwordDamage(1);
+    // 컴포넌트 데이터는 public 멤버에 직접 대입한다. setter 메서드 없이도 동일 효과.
+    playerAttack->combatSystem = &loop.combatSystem;
+    playerAttack->swordDamage = 1;
     player->AddComponent(playerAttack);
     player->AddComponent(new HealthController());
     player->AddComponent(new PlayerControl(0));

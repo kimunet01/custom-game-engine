@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 /*
  * EnvironmentRenderer.h
@@ -7,6 +7,10 @@
  *
  * Used by the StageTerrain GameObject. The mesh and material are owned by
  * main.cpp; this component only manages the GPU constant buffers it creates.
+ *
+ * Policy: lifecycle(Start/Render) + public data only. External actions
+ * (toggling boss tone, setting hit position) are performed by directly
+ * mutating `envData` from a free function in StateCallbacks.
  */
 
 #include <vector>
@@ -16,40 +20,31 @@
 #include "Resources/Mesh.h"
 #include "Resources/Material.h"
 
-// Layout of the b1 (PS) constant buffer used by TextureShader.hlsl for the
-// boss-stage tone and bullet-hit flash effects. Must stay 16-byte aligned for
-// D3D11, hence the explicit padding.
+// b1 (PS) 상수 버퍼 레이아웃. TextureShader.hlsl의 EnvironmentBuffer와 16바이트 정렬을 맞춘다.
 struct EnvironmentBufferType {
-    float time;                    // Seconds since the boss stage started (drives sin-based flicker)
-    int isBossStage;               // 0 = normal, 1 = boss-stage tone enabled
-    DirectX::XMFLOAT2 padding;     // 8-byte pad to keep the next field 16-byte aligned
-    DirectX::XMFLOAT4 hitPosition; // World-space hit position (currently unused)
+    float time;                    // BossStage 진입 후 경과 시간 (sin 깜빡임 입력)
+    int isBossStage;               // 0 = 일반, 1 = 보스 톤 활성
+    DirectX::XMFLOAT2 padding;     // 16바이트 정렬용 패딩
+    DirectX::XMFLOAT4 hitPosition; // 월드 히트 위치 (현재 셰이더에서 미사용)
 };
 
 class EnvironmentRenderer : public Component {
 public:
-    // External resources — owned by main.cpp, not by this component.
+    // ── 외부 자원 (소유권은 main) ──
     Mesh* pFloorMesh = nullptr;
     Material* pMaterial = nullptr;
 
-    // GPU constant buffers — owned and released by this component.
-    ID3D11Buffer* pMatrixBuffer = nullptr; // b0: world/view/proj matrix
-    ID3D11Buffer* pEnvBuffer = nullptr;    // b1: per-stage environment data
+    // ── 본 컴포넌트가 만들고 관리하는 GPU 상수 버퍼 ──
+    ID3D11Buffer* pMatrixBuffer = nullptr; // b0
+    ID3D11Buffer* pEnvBuffer = nullptr;    // b1
+
+    // ── 콜백이 직접 대입하는 환경 데이터 ──
+    // 매 Render에서 pEnvBuffer로 GPU에 업로드된다.
+    EnvironmentBufferType envData{};
 
     explicit EnvironmentRenderer(Mesh* mesh, Material* mat);
     virtual ~EnvironmentRenderer();
 
     void Start() override;
     void Render() override;
-
-    // Driven by TerrainStateController (Update / TriggerBossAppearance / ReportWallCollision).
-    void UpdateShaderTime(float time);
-    void SetBossThemeActive(bool active);
-    void EnableFlashEffect(const Vec3& hitPos);
-    void DisableFlashEffect();
-
-private:
-    // CPU mirror of the b1 buffer. Mutated by the Set/Update/Enable/Disable
-    // calls above and uploaded to GPU every Render().
-    EnvironmentBufferType m_envData;
 };

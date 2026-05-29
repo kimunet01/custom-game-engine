@@ -6,6 +6,7 @@
 #include "AttackState.h"
 #include "GameObject.h"
 #include "HealthController.h"
+#include "HealthState.h"
 #include "LifeState.h"
 #include "Logger.h"
 #include "MovementState.h"
@@ -95,14 +96,20 @@ void CombatSystem::Update(const std::vector<GameObject*>& gameObjects)
             if (!IsInFrontalHitbox(attacker, target)) {
                 continue;
             }
-            // 데미지 적용. HealthController가 없으면 무시.
-            HealthController* targetHealth = target->GetComponent<HealthController>();
-            if (targetHealth == nullptr) {
-                continue;
+            // 데미지 적용을 인라인으로 처리한다. (호출자가 여기 한 곳뿐이므로 함수 추출 가치 낮음.)
+            // 무적 가드 → HP 감소 → HealthController가 등록한 콜백이 HP<=0이면 자동으로 LifeState.Dead 전환.
+            HealthState* targetHs = target->GetState<HealthState>();
+            if (targetHs == nullptr) continue;
+            HealthController* targetHc = target->GetComponent<HealthController>();
+            if (targetHc != nullptr && targetHc->invincibilityRemaining > 0.0f) continue;
+
+            const int prev = targetHs->GetCurrent();
+            targetHs->SetCurrent(prev - hit.damage);
+            if (targetHc != nullptr) {
+                targetHc->invincibilityRemaining = targetHc->invincibilityDuration;
             }
-            targetHealth->TakeDamage(hit.damage);
-            Logger::Info("CombatSystem hit landed. attacker=%s target=%s damage=%d",
-                         attacker->name.c_str(), target->name.c_str(), hit.damage);
+            Logger::Info("CombatSystem hit landed. attacker=%s target=%s damage=%d hp=%d->%d",
+                         attacker->name.c_str(), target->name.c_str(), hit.damage, prev, targetHs->GetCurrent());
         }
     }
 }

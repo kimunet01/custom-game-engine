@@ -4,7 +4,6 @@
 #include <cstdio>
 
 #include "GameObject.h"
-#include "HealthController.h"
 #include "Logger.h"
 #include "LevelLayout.h"
 
@@ -274,57 +273,10 @@ void CollisionSystem::ResolveBounds(GameObject* object)
     }
 }
 
-void CollisionSystem::NotifyCollision(const CollisionPair& pair)
+void CollisionSystem::NotifyCollision(const CollisionPair& /*pair*/)
 {
-    if (pair.first == nullptr || pair.second == nullptr) {
-        return;
-    }
-
-    // 기존 규칙: Player와 Bullet 충돌 시 lose! 1회 출력 (name 기반, 이전 호환).
-    const bool firstIsPlayer = pair.first->name == "Player";
-    const bool secondIsPlayer = pair.second->name == "Player";
-    const bool firstIsBullet = pair.first->name.find("Bullet") == 0;
-    const bool secondIsBullet = pair.second->name.find("Bullet") == 0;
-
-    if (!isLosePrinted && ((firstIsPlayer && secondIsBullet) || (secondIsPlayer && firstIsBullet))) {
-        Logger::Info("lose!");
-        isLosePrinted = true;
-    }
-
-    // 신규 규칙: TeamId가 Player인 쪽과 Enemy인 쪽이 충돌하면 Player가 데미지를 입고 적 반대 방향으로 밀려난다.
-    // 무적 시간은 HealthController가 관리하므로 매 프레임 충돌이 호출되어도 데미지는 한 번만 누적된다.
-    GameObject* playerObj = nullptr;
-    GameObject* enemyObj = nullptr;
-    if (pair.first->teamId == TeamId::Player && pair.second->teamId == TeamId::Enemy) {
-        playerObj = pair.first;
-        enemyObj = pair.second;
-    }
-    else if (pair.second->teamId == TeamId::Player && pair.first->teamId == TeamId::Enemy) {
-        playerObj = pair.second;
-        enemyObj = pair.first;
-    }
-
-    if (playerObj != nullptr && enemyObj != nullptr) {
-        // 적 → 플레이어 방향 벡터의 반대 방향으로 플레이어를 밀어낸다.
-        float nx = playerObj->position.x - enemyObj->position.x;
-        float ny = playerObj->position.y - enemyObj->position.y;
-        float length = std::sqrt(nx * nx + ny * ny);
-        if (length <= 0.0001f) {
-            nx = 1.0f; ny = 0.0f; length = 1.0f;
-        }
-        nx /= length;
-        ny /= length;
-
-        // ResolveObjectCollision이 이미 살짝(0.01) 분리하고 속도를 반사하므로,
-        // 여기서는 약간 더 큰 knockback offset만 추가로 적용한다.
-        constexpr float kKnockbackDistance = 0.05f;
-        playerObj->position.x += nx * kKnockbackDistance;
-        playerObj->position.y += ny * kKnockbackDistance;
-
-        // 데미지는 HealthController가 무적 타이머로 연속 적중을 차단한다.
-        HealthController* playerHealth = playerObj->GetComponent<HealthController>();
-        if (playerHealth != nullptr) {
-            playerHealth->TakeDamage(1);
-        }
-    }
+    // CollisionSystem은 물리(충돌 감지 + 반사 + 경계 보정)만 담당한다.
+    // "Player가 적과 닿으면 HP가 깎인다" 같은 게임 규칙은 충돌 시스템 책임이 아니다.
+    // 데미지/녹백 같은 게임 규칙은 PlayerControl/CombatSystem이 자기 isCollided를 보고 처리한다.
+    // (이 메서드는 추후 시스템 차원의 충돌 알림이 필요해질 때를 위해 자리만 유지한다.)
 }
